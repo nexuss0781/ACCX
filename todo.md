@@ -28,8 +28,8 @@
 - [x] Provision and verify the live encrypted ACCX Paradox control-plane database.
 - [x] Add a server-only executor protocol that validates an active lease before decrypting any secret version for a provider action.
 - [x] Add explicit safe failure behavior for unregistered provider actions and provider execution timeouts.
-- [ ] Build and install the npm SDK package artifact in an isolated verification directory.
-- [ ] Build and install the PyPI SDK package artifact in an isolated verification directory.
+- [x] Build and install the npm SDK package artifact in an isolated verification directory.
+- [x] Build and install the PyPI SDK package artifact in an isolated verification directory.
 - [ ] Add frontend API client, cloud metadata state, and server session bootstrap without altering existing page layout or styling.
 - [ ] Replace account password reveal, copy, local account persistence, local credential notes, and local login/register paths with metadata-only cloud workflows.
 - [ ] Add browser-flow tests and a final source audit confirming no ACCX credential values reach browser storage or clipboard APIs.
