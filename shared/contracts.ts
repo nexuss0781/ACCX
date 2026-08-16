@@ -31,6 +31,13 @@ export const secretMetadataSchema = z.object({
   rotationState: z.enum(["stable", "rotation_required", "rotating"]),
   expiresAt: z.string().datetime().nullable(),
   lastUsedAt: z.string().datetime().nullable(),
+  fieldKind: z.enum(["password", "api_token", "refresh_token", "client_secret", "recovery_code", "cookie", "ssh_key", "custom"]),
+  tags: z.array(z.string().min(1).max(48)).max(20),
+  aliases: z.array(secretReferenceSchema).max(20),
+  healthStatus: z.enum(["unknown", "healthy", "attention", "failed"]),
+  lastRotatedAt: z.string().datetime().nullable(),
+  deletedAt: z.string().datetime().nullable(),
+  purgeAfter: z.string().datetime().nullable(),
 });
 
 export type SecretMetadata = z.infer<typeof secretMetadataSchema>;

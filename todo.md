@@ -46,8 +46,8 @@
 - [x] Add session refresh-token rotation, device/session inventory, session revocation controls, and bounded session lifetimes.
 - [x] Add step-up authorization for destructive vault operations and privileged action approval.
 - [x] Add WebAuthn/passkey enrollment and TOTP MFA enrollment, verification, recovery, and audit paths.
-- [ ] Add typed secret-field templates, tags, aliases, health state, last-rotated tracking, soft deletion, retention, and controlled purge.
-- [ ] Add encrypted import/export workflows with explicit confirmation, re-authentication, audit events, and server-side policy checks.
+- [x] Add typed secret-field templates, tags, aliases, health state, last-rotated tracking, soft deletion, retention, and controlled purge.
+- [x] Add encrypted import/export workflows with explicit confirmation, re-authentication, audit events, and server-side policy checks.
 - [ ] Add reusable server-side rate limits, request timestamps/nonces, token binding, and replay protection for sensitive paths.
 - [ ] Add automated cross-tenant, cross-project, cross-environment, token-replay, rotation, and authorization abuse-case tests.
 - [ ] Add approval-gated orchestration jobs, provider execution timeouts, egress policy contracts, and isolated runtime handoff documentation.
