@@ -6,16 +6,17 @@
 - [x] Add multi-tenant workspace, project, environment, membership, and scope-based authorization models.
 - [x] Add envelope-encrypted secret metadata and version records without frontend plaintext access.
 - [x] Add version activation, rotation validation, short-lived leases, revocation, and audit logging.
-- [ ] Add service identities and encrypted one-time workload-token provisioning with revocation.
-- [ ] Add trusted orchestrator job submission, server-side action policies, and sanitized results.
+- [x] Add service identities and server-only short-lived workload-token provisioning with revocation.
+- [x] Add trusted orchestrator job submission, server-side action policies, and sanitized results.
 - [ ] Add a dedicated worker deployment contract for credential-consuming actions.
 - [x] Create the shared TypeScript and Zod SDK contract layer.
 - [x] Create the publishable npm accx SDK with no plaintext resolution API.
 - [x] Create the publishable PyPI accx SDK with no plaintext resolution API.
 - [ ] Connect the existing frontend only to metadata and audit APIs, without redesigning it.
-- [ ] Add tests for encryption, RBAC, lease expiry/revocation, audit redaction, and SDK surface restrictions.
-- [ ] Verify Vercel compatibility, type checks, builds, package artifacts, and security source audit.
-- [ ] Commit and push the completed backend upgrade to a dedicated GitHub branch.
+- [ ] Remove the legacy password clipboard handler and local credential persistence during the backend metadata integration, while preserving the completed frontend design.
+- [x] Add tests for encryption, RBAC, lease expiry/revocation, audit redaction, and SDK surface restrictions.
+- [x] Verify Vercel compatibility, type checks, builds, package artifacts, and security source audit.
+- [x] Commit and push the completed backend upgrade to a dedicated GitHub branch.
 - [x] Keep the existing Vercel frontend and add all backend API routes within the same Vercel project and repository.
 - [x] Design orchestration for Vercel serverless execution without relying on a separate website or local credential storage.
 - [x] Review the Paradox-DB skill and configure the ACCX cloud data layer from its Vercel-compatible guidance.

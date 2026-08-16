@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { decryptSecret, encryptSecret, redactAuditMetadata } from "../api/_lib/security.js";
 import { isLeaseActive, requiredScopesForAction } from "../api/_lib/orchestrator.js";
+import { assertScopes } from "../api/_lib/vault.js";
 import { ZERO_PLAINTEXT_INVARIANT, jobSubmissionSchema } from "../shared/contracts.js";
 
 process.env.ACCX_VAULT_MASTER_KEY = Buffer.alloc(32, 7).toString("base64");
@@ -24,6 +25,13 @@ describe("ACCX zero-plaintext boundary", () => {
     expect(isLeaseActive({ expiresAt: "2030-01-01T00:01:00.000Z", revokedAt: null, secretStatus: "active" }, Date.parse("2030-01-01T00:00:00.000Z"))).toBe(true);
     expect(isLeaseActive({ expiresAt: "2029-12-31T23:59:00.000Z", revokedAt: null, secretStatus: "active" }, Date.parse("2030-01-01T00:00:00.000Z"))).toBe(false);
     expect(isLeaseActive({ expiresAt: "2030-01-01T00:01:00.000Z", revokedAt: "2030-01-01T00:00:00.000Z", secretStatus: "active" }, Date.parse("2030-01-01T00:00:00.000Z"))).toBe(false);
+  });
+
+  it("enforces workspace scopes on the server-side data path", () => {
+    const allowDb = { execute: () => ({ rows: [{ scopes_json: JSON.stringify(["metadata.read", "job.execute"]) }] }) };
+    const denyDb = { execute: () => ({ rows: [{ scopes_json: JSON.stringify(["metadata.read"]) }] }) };
+    expect(() => assertScopes(allowDb as never, "workspace", "worker", ["job.execute"])).not.toThrow();
+    expect(() => assertScopes(denyDb as never, "workspace", "worker", ["provider.publish"])).toThrow(/forbidden/i);
   });
 
   it("keeps job contracts reference-only and omits a raw secret field", () => {
