@@ -4,9 +4,9 @@ import { type JobSubmission, type SanitizedJobResult, type Scope, sanitizedJobRe
 import { assertScopes, hashOpaqueToken, recordAudit } from "./vault.js";
 
 const now = () => new Date().toISOString();
-const actionPolicies: Record<string, readonly Scope[]> = {
-  "provider.publish": ["job.execute", "provider.publish"],
-  "provider.health_check": ["job.execute"],
+const actionPolicies: Record<string, { scopes: readonly Scope[]; approvalRequired: boolean; timeoutMs: number; egressClass: "provider" | "health" }> = {
+  "provider.publish": { scopes: ["job.execute", "provider.publish"], approvalRequired: true, timeoutMs: 30_000, egressClass: "provider" },
+  "provider.health_check": { scopes: ["job.execute"], approvalRequired: false, timeoutMs: 10_000, egressClass: "health" },
 };
 
 export function isLeaseActive(input: { expiresAt: string; revokedAt: string | null; secretStatus: "active" | "pending" | "revoked" }, at = Date.now()): boolean {
@@ -19,7 +19,13 @@ function first<T extends Row>(result: { rows: Row[] }): T | null { return (resul
 export function requiredScopesForAction(action: string): Scope[] {
   const policy = actionPolicies[action];
   if (!policy) throw new Error("UNSUPPORTED_ACTION");
-  return [...policy];
+  return [...policy.scopes];
+}
+
+export function actionExecutionPolicy(action: string): { approvalRequired: boolean; timeoutMs: number; egressClass: "provider" | "health" } {
+  const policy = actionPolicies[action];
+  if (!policy) throw new Error("UNSUPPORTED_ACTION");
+  return { approvalRequired: policy.approvalRequired, timeoutMs: policy.timeoutMs, egressClass: policy.egressClass };
 }
 
 export function createServiceIdentity(db: ParadConnection, input: { projectId: string; name: string; scopes: Scope[]; actorId: string }): { id: string; name: string } {
@@ -65,6 +71,7 @@ function authenticateWorkload(db: ParadConnection, token: string): { identityId:
 export function submitJob(db: ParadConnection, workloadToken: string, job: JobSubmission): SanitizedJobResult {
   const workload = authenticateWorkload(db, workloadToken);
   const requiredScopes = requiredScopesForAction(job.action);
+  const executionPolicy = actionExecutionPolicy(job.action);
   if (!requiredScopes.every(scope => job.requiredScopes.includes(scope))) throw new Error("FORBIDDEN");
   if (!requiredScopes.every(scope => workload.scopes.includes(scope))) throw new Error("FORBIDDEN");
   const existing = first<{ id: string; status: SanitizedJobResult["status"]; completed_at: string | null }>(db.execute(`SELECT id, status, completed_at FROM orchestration_jobs WHERE idempotency_key = ?`, [job.idempotencyKey]));
@@ -77,14 +84,27 @@ export function submitJob(db: ParadConnection, workloadToken: string, job: JobSu
     db.execute(`INSERT INTO secret_leases (id, secret_version_id, service_identity_id, action, scopes_json, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`, [randomUUID(), secret.version_id, workload.identityId, job.action, JSON.stringify(requiredScopes), leaseExpiry, now()]);
   }
   const jobId = randomUUID();
-  db.execute(`INSERT INTO orchestration_jobs (id, project_id, service_identity_id, action, secret_references_json, required_scopes_json, input_json, idempotency_key, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?)`, [jobId, workload.projectId, workload.identityId, job.action, JSON.stringify(job.secretReferences), JSON.stringify(requiredScopes), JSON.stringify(job.input), job.idempotencyKey, now()]);
-  recordAudit(db, { workspaceId: workload.workspaceId, projectId: workload.projectId, actorType: "service", actorId: workload.identityId, eventType: "job.submitted", metadata: { action: job.action, referenceCount: job.secretReferences.length } });
-  return sanitizedJobResultSchema.parse({ jobId, status: "queued", message: "Trusted execution accepted; no credential material was returned.", completedAt: null });
+  const status = executionPolicy.approvalRequired ? "awaiting_approval" : "queued";
+  db.execute(`INSERT INTO orchestration_jobs (id, project_id, service_identity_id, action, secret_references_json, required_scopes_json, input_json, idempotency_key, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [jobId, workload.projectId, workload.identityId, job.action, JSON.stringify(job.secretReferences), JSON.stringify(requiredScopes), JSON.stringify(job.input), job.idempotencyKey, status, now()]);
+  if (executionPolicy.approvalRequired) db.execute(`INSERT INTO job_approvals (id, job_id, status, requested_at) VALUES (?, ?, 'pending', ?)`, [randomUUID(), jobId, now()]);
+  recordAudit(db, { workspaceId: workload.workspaceId, projectId: workload.projectId, actorType: "service", actorId: workload.identityId, eventType: executionPolicy.approvalRequired ? "job.approval_requested" : "job.submitted", metadata: { action: job.action, referenceCount: job.secretReferences.length } });
+  return sanitizedJobResultSchema.parse({ jobId, status, message: executionPolicy.approvalRequired ? "Trusted execution is awaiting human approval." : "Trusted execution accepted; no credential material was returned.", completedAt: null });
 }
 
 export function getJobStatus(db: ParadConnection, workloadToken: string, jobId: string): SanitizedJobResult {
   const workload = authenticateWorkload(db, workloadToken);
   const job = first<{ id: string; status: SanitizedJobResult["status"]; completed_at: string | null }>(db.execute(`SELECT id, status, completed_at FROM orchestration_jobs WHERE id = ? AND project_id = ? AND service_identity_id = ?`, [jobId, workload.projectId, workload.identityId]));
   if (!job) throw new Error("NOT_FOUND");
-  return sanitizedJobResultSchema.parse({ jobId: job.id, status: job.status, message: job.status === "queued" ? "Awaiting trusted execution." : "Sanitized job status.", completedAt: job.completed_at });
+  return sanitizedJobResultSchema.parse({ jobId: job.id, status: job.status, message: job.status === "awaiting_approval" ? "Awaiting human approval." : job.status === "queued" ? "Awaiting trusted execution." : "Sanitized job status.", completedAt: job.completed_at });
+}
+
+export function resolveJobApproval(db: ParadConnection, input: { jobId: string; actorId: string; approve: boolean; reason: string }): { status: "queued" | "cancelled" } {
+  const job = first<{ id: string; workspace_id: string; project_id: string; action: string; status: string }>(db.execute(`SELECT j.id, j.action, j.status, j.project_id, p.workspace_id FROM orchestration_jobs j JOIN projects p ON p.id = j.project_id WHERE j.id = ?`, [input.jobId]));
+  if (!job || job.status !== "awaiting_approval") throw new Error("NOT_FOUND");
+  assertScopes(db, job.workspace_id, input.actorId, ["provider.publish"]);
+  const status = input.approve ? "queued" : "cancelled" as const;
+  db.execute(`UPDATE job_approvals SET status = ?, resolved_at = ?, resolved_by = ?, reason = ? WHERE job_id = ? AND status = 'pending'`, [input.approve ? "approved" : "rejected", now(), input.actorId, input.reason, job.id]);
+  db.execute(`UPDATE orchestration_jobs SET status = ?, completed_at = ? WHERE id = ? AND status = 'awaiting_approval'`, [status, input.approve ? null : now(), job.id]);
+  recordAudit(db, { workspaceId: job.workspace_id, projectId: job.project_id, actorType: "human", actorId: input.actorId, eventType: input.approve ? "job.approved" : "job.rejected", metadata: { action: job.action } });
+  return { status };
 }

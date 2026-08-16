@@ -47,3 +47,9 @@
 - Symptom: an external Paradox gateway probe intermittently exceeded its test timeout despite the deterministic ACCX identity and API checks succeeding.
 - Resolution: kept managed-secret configuration coverage in the normal suite and moved the variable-latency gateway probes behind the explicit `pnpm test:network` command.
 - Verification: the identity-security suite and both API and SDK type checks passed without a network dependency.
+
+## 2026-08-16 — Approval audit regression assertion
+
+- Symptom: the new orchestration-control test expected a literal approval audit event even though the implementation intentionally selects between approval and ordinary submission events in one conditional expression.
+- Resolution: adjusted the assertion to verify the conditional expression rather than weakening the server-side approval policy.
+- Verification: orchestration-control tests and API type checks passed.

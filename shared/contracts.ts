@@ -54,7 +54,7 @@ export type JobSubmission = z.infer<typeof jobSubmissionSchema>;
 
 export const sanitizedJobResultSchema = z.object({
   jobId: z.string().uuid(),
-  status: z.enum(["queued", "running", "succeeded", "failed", "cancelled"]),
+  status: z.enum(["awaiting_approval", "queued", "running", "succeeded", "failed", "cancelled"]),
   message: z.string().max(500),
   completedAt: z.string().datetime().nullable(),
 });

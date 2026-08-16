@@ -21,6 +21,7 @@ export function ensureSchema(db: ParadConnection): void {
   db.execute(`CREATE TABLE IF NOT EXISTS service_identities (id TEXT PRIMARY KEY, project_id TEXT NOT NULL, name TEXT NOT NULL, scopes_json TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('active','revoked')), created_at TEXT NOT NULL, revoked_at TEXT, UNIQUE(project_id, name))`);
   db.execute(`CREATE TABLE IF NOT EXISTS workload_tokens (id TEXT PRIMARY KEY, service_identity_id TEXT NOT NULL, token_digest TEXT NOT NULL UNIQUE, expires_at TEXT NOT NULL, revoked_at TEXT, created_at TEXT NOT NULL)`);
   db.execute(`CREATE TABLE IF NOT EXISTS orchestration_jobs (id TEXT PRIMARY KEY, project_id TEXT NOT NULL, service_identity_id TEXT NOT NULL, action TEXT NOT NULL, secret_references_json TEXT NOT NULL, required_scopes_json TEXT NOT NULL, input_json TEXT NOT NULL, idempotency_key TEXT NOT NULL UNIQUE, status TEXT NOT NULL, result_json TEXT, created_at TEXT NOT NULL, completed_at TEXT)`);
+  db.execute(`CREATE TABLE IF NOT EXISTS job_approvals (id TEXT PRIMARY KEY, job_id TEXT NOT NULL UNIQUE, status TEXT NOT NULL CHECK(status IN ('pending','approved','rejected')), requested_at TEXT NOT NULL, resolved_at TEXT, resolved_by TEXT, reason TEXT)`);
   db.execute(`CREATE TABLE IF NOT EXISTS audit_events (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, project_id TEXT, environment_id TEXT, actor_type TEXT NOT NULL, actor_id TEXT NOT NULL, event_type TEXT NOT NULL, reference TEXT, secret_version INTEGER, metadata_json TEXT NOT NULL, created_at TEXT NOT NULL)`);
   db.execute(`CREATE INDEX IF NOT EXISTS idx_secrets_reference ON secrets(reference)`);
   db.execute(`CREATE INDEX IF NOT EXISTS idx_secret_aliases_alias ON secret_aliases(alias)`);
@@ -56,4 +57,5 @@ export function ensureSchema(db: ParadConnection): void {
   const challengeColumns = db.execute(`PRAGMA table_info(webauthn_challenges)`).rows as { name: string }[];
   if (!challengeColumns.some(column => column.name === "challenge")) db.execute(`ALTER TABLE webauthn_challenges ADD COLUMN challenge TEXT`);
   db.execute(`CREATE INDEX IF NOT EXISTS idx_jobs_dispatch ON orchestration_jobs(status, created_at)`);
+  db.execute(`CREATE INDEX IF NOT EXISTS idx_job_approvals_status ON job_approvals(status, requested_at)`);
 }

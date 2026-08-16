@@ -50,8 +50,8 @@
 - [x] Add encrypted import/export workflows with explicit confirmation, re-authentication, audit events, and server-side policy checks.
 - [x] Add reusable server-side rate limits, request timestamps/nonces, token binding, and replay protection for sensitive paths.
 - [x] Add automated cross-tenant, cross-project, cross-environment, token-replay, rotation, and authorization abuse-case tests.
-- [ ] Add approval-gated orchestration jobs, provider execution timeouts, egress policy contracts, and isolated runtime handoff documentation.
-- [ ] Add provider adapter templates and safe health-check orchestration without retaining secret-bearing results.
+- [x] Add approval-gated orchestration jobs, provider execution timeouts, egress policy contracts, and isolated runtime handoff documentation.
+- [x] Add provider adapter templates and safe health-check orchestration without retaining secret-bearing results.
 - [ ] Add npm SDK retry, explicit errors, rotation-aware metadata refresh, and restricted browser entry-point documentation.
 - [ ] Add Python SDK async support, explicit errors, safe logging/redaction helpers, and optional framework integration boundaries.
 - [ ] Add metadata-only UI workflows for rotation, revocation, access history, tags, typed account templates, import/export, and emergency controls.
