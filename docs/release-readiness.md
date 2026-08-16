@@ -14,7 +14,7 @@ npm run build
 node --check worker/accx-worker.mjs
 ```
 
-The suite includes encryption, RBAC, lease, audit-redaction, SDK-surface, frontend-boundary, worker-contract, and managed-secret checks. The opt-in live Paradox control-plane test should be run only when `ACCX_LIVE_PARADOX_TEST=true` is explicitly set in a secure server environment.
+The deterministic suite includes encryption, RBAC, lease, audit-redaction, SDK-surface, frontend-boundary, worker-contract, and managed-secret configuration checks. The gateway probe is run with `pnpm test:network`, and the opt-in live Paradox control-plane test is run with `ACCX_LIVE_PARADOX_TEST=true`; both must execute only in a secure server environment.
 
 ## Vercel configuration
 

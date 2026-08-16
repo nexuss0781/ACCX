@@ -41,3 +41,9 @@
 - Symptom: the first PyPI artifact build rejected an unsupported `project.repository` field, and a follow-up section placement temporarily treated classifiers as URLs.
 - Resolution: moved the repository link into `[project.urls]` and kept classifiers in the project table; the license now uses the SPDX string form.
 - Verification: the `accx-0.1.0-py3-none-any.whl` artifact built successfully and the npm dry-run reported only the ten intended SDK files.
+
+## 2026-08-16 — Hosted gateway test isolation
+
+- Symptom: an external Paradox gateway probe intermittently exceeded its test timeout despite the deterministic ACCX identity and API checks succeeding.
+- Resolution: kept managed-secret configuration coverage in the normal suite and moved the variable-latency gateway probes behind the explicit `pnpm test:network` command.
+- Verification: the identity-security suite and both API and SDK type checks passed without a network dependency.

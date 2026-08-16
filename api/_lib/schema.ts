@@ -4,6 +4,10 @@ export function ensureSchema(db: ParadConnection): void {
   db.execute(`CREATE TABLE IF NOT EXISTS control_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`);
   db.execute(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, name TEXT NOT NULL, password_hash TEXT NOT NULL, created_at TEXT NOT NULL)`);
   db.execute(`CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, token_hash TEXT NOT NULL UNIQUE, expires_at TEXT NOT NULL, created_at TEXT NOT NULL, revoked_at TEXT)`);
+  db.execute(`CREATE TABLE IF NOT EXISTS mfa_totp_factors (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, label TEXT NOT NULL, encrypted_data_key_json TEXT NOT NULL, encrypted_secret_json TEXT NOT NULL, algorithm TEXT NOT NULL, verified_at TEXT, created_at TEXT NOT NULL, revoked_at TEXT)`);
+  db.execute(`CREATE TABLE IF NOT EXISTS mfa_recovery_codes (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, code_hash TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL, used_at TEXT)`);
+  db.execute(`CREATE TABLE IF NOT EXISTS webauthn_credentials (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, credential_id TEXT NOT NULL UNIQUE, public_key_b64 TEXT NOT NULL, counter INTEGER NOT NULL, transports_json TEXT NOT NULL, label TEXT NOT NULL, device_type TEXT NOT NULL, backed_up INTEGER NOT NULL, created_at TEXT NOT NULL, last_used_at TEXT, revoked_at TEXT)`);
+  db.execute(`CREATE TABLE IF NOT EXISTS webauthn_challenges (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, purpose TEXT NOT NULL CHECK(purpose IN ('register','step_up')), challenge_hash TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL, consumed_at TEXT)`);
   db.execute(`CREATE TABLE IF NOT EXISTS workspaces (id TEXT PRIMARY KEY, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL)`);
   db.execute(`CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, name TEXT NOT NULL, slug TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(workspace_id, slug))`);
   db.execute(`CREATE TABLE IF NOT EXISTS environments (id TEXT PRIMARY KEY, project_id TEXT NOT NULL, label TEXT NOT NULL CHECK(label IN ('development','staging','production')), created_at TEXT NOT NULL, UNIQUE(project_id, label))`);
@@ -19,10 +23,24 @@ export function ensureSchema(db: ParadConnection): void {
   db.execute(`CREATE INDEX IF NOT EXISTS idx_audit_workspace_created ON audit_events(workspace_id, created_at)`);
   db.execute(`CREATE INDEX IF NOT EXISTS idx_leases_expiry ON secret_leases(expires_at)`);
   db.execute(`CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash)`);
+  db.execute(`CREATE INDEX IF NOT EXISTS idx_sessions_user_active ON sessions(user_id, revoked_at, expires_at)`);
+  db.execute(`CREATE INDEX IF NOT EXISTS idx_mfa_totp_user_active ON mfa_totp_factors(user_id, revoked_at, verified_at)`);
+  db.execute(`CREATE INDEX IF NOT EXISTS idx_webauthn_user_active ON webauthn_credentials(user_id, revoked_at)`);
+  db.execute(`CREATE INDEX IF NOT EXISTS idx_webauthn_challenge_user ON webauthn_challenges(user_id, purpose, expires_at)`);
   const columns = db.execute(`PRAGMA table_info(orchestration_jobs)`).rows as { name: string }[];
   const addColumn = (name: string, definition: string) => { if (!columns.some(column => column.name === name)) db.execute(`ALTER TABLE orchestration_jobs ADD COLUMN ${definition}`); };
   addColumn("claimed_by", "claimed_by TEXT");
   addColumn("claimed_at", "claimed_at TEXT");
   addColumn("attempts", "attempts INTEGER NOT NULL DEFAULT 0");
+  const sessionColumns = db.execute(`PRAGMA table_info(sessions)`).rows as { name: string }[];
+  const addSessionColumn = (name: string, definition: string) => { if (!sessionColumns.some(column => column.name === name)) db.execute(`ALTER TABLE sessions ADD COLUMN ${definition}`); };
+  addSessionColumn("last_seen_at", "last_seen_at TEXT");
+  addSessionColumn("session_label", "session_label TEXT");
+  addSessionColumn("user_agent_hash", "user_agent_hash TEXT");
+  addSessionColumn("step_up_until", "step_up_until TEXT");
+  addSessionColumn("step_up_method", "step_up_method TEXT");
+  addSessionColumn("rotated_from", "rotated_from TEXT");
+  const challengeColumns = db.execute(`PRAGMA table_info(webauthn_challenges)`).rows as { name: string }[];
+  if (!challengeColumns.some(column => column.name === "challenge")) db.execute(`ALTER TABLE webauthn_challenges ADD COLUMN challenge TEXT`);
   db.execute(`CREATE INDEX IF NOT EXISTS idx_jobs_dispatch ON orchestration_jobs(status, created_at)`);
 }
