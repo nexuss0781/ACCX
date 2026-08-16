@@ -1,4 +1,4 @@
-const required = ["PARADOX_API_KEY", "PARADOX_PASSPHRASE", "ACCX_VAULT_MASTER_KEY", "ACCX_ADMIN_KEY"] as const;
+const required = ["PARADOX_API_KEY", "PARADOX_PASSPHRASE", "ACCX_VAULT_MASTER_KEY", "ACCX_ADMIN_KEY", "ACCX_WORKER_KEY"] as const;
 type RequiredEnvironment = (typeof required)[number];
 
 function getRequired(name: RequiredEnvironment): string {
@@ -14,4 +14,5 @@ export const serverEnv = {
   paradoxPassphrase: () => getRequired("PARADOX_PASSPHRASE"),
   vaultMasterKey: () => getRequired("ACCX_VAULT_MASTER_KEY"),
   adminKey: () => getRequired("ACCX_ADMIN_KEY"),
+  workerKey: () => getRequired("ACCX_WORKER_KEY"),
 };

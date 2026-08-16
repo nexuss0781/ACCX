@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { decryptSecret, encryptSecret, redactAuditMetadata } from "../api/_lib/security.js";
+import { executeQueuedJob } from "../api/_lib/executor.js";
 import { isLeaseActive, requiredScopesForAction } from "../api/_lib/orchestrator.js";
 import { assertScopes } from "../api/_lib/vault.js";
 import { ZERO_PLAINTEXT_INVARIANT, jobSubmissionSchema } from "../shared/contracts.js";
@@ -44,5 +45,17 @@ describe("ACCX zero-plaintext boundary", () => {
     const js = readFileSync(new URL("../packages/sdk-js/src/index.ts", import.meta.url), "utf8");
     const python = readFileSync(new URL("../packages/sdk-python/accx/client.py", import.meta.url), "utf8");
     expect(`${js}\n${python}`).not.toMatch(/resolvePlaintext|resolveRawSecret|getPassword|copySecret/i);
+  });
+
+  it("fails an unregistered provider action without querying an encrypted secret version", async () => {
+    const execute = vi.fn((sql: string) => {
+      if (sql.includes("FROM orchestration_jobs")) {
+        return { rows: [{ id: "job-1", action: "provider.unsupported", status: "queued", service_identity_id: "identity-1", project_id: "project-1", workspace_id: "workspace-1", input_json: "{}" }] };
+      }
+      return { rows: [] };
+    });
+    const result = await executeQueuedJob({ execute } as never, "job-1");
+    expect(result).toEqual({ jobId: "job-1", status: "failed", message: "No trusted provider adapter is registered for this action." });
+    expect(execute.mock.calls.some(([sql]) => String(sql).includes("encrypted_data_key_json"))).toBe(false);
   });
 });

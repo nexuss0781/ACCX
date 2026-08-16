@@ -21,6 +21,15 @@ export function authorizeAdmin(req: ApiRequest): void {
   if (expected.length !== received.length || !timingSafeEqual(expected, received)) throw new Error("UNAUTHORIZED");
 }
 
+export function authorizeWorker(req: ApiRequest): void {
+  const presented = req.headers["x-accx-worker-key"];
+  const candidate = Array.isArray(presented) ? presented[0] : presented;
+  if (!candidate) throw new Error("UNAUTHORIZED");
+  const expected = Buffer.from(serverEnv.workerKey());
+  const received = Buffer.from(candidate);
+  if (expected.length !== received.length || !timingSafeEqual(expected, received)) throw new Error("UNAUTHORIZED");
+}
+
 export function apiError(res: ApiResponse, error: unknown): void {
   const message = error instanceof Error ? error.message : "Request failed";
   const status = message === "UNAUTHORIZED" ? 401 : message === "FORBIDDEN" ? 403 : message === "PARADOX_CONFLICT" ? 409 : 500;
