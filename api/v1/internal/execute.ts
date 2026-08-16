@@ -4,7 +4,7 @@ import { apiError, authorizeWorker, sendJson } from "../../_lib/http.js";
 import { executeQueuedJob } from "../../_lib/executor.js";
 import { withControlPlaneDb } from "../../_lib/paradox.js";
 
-const schema = z.object({ jobId: z.string().uuid() });
+const schema = z.object({ jobId: z.string().uuid(), workerId: z.string().trim().min(3).max(128).regex(/^[a-zA-Z0-9._:-]+$/).default("internal-worker") });
 
 /** Server-only entry point for a Vercel cron, queue, or dedicated worker. */
 export default async function handler(req: ApiRequest, res: ApiResponse): Promise<void> {
@@ -12,7 +12,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
   try {
     authorizeWorker(req);
     const input = schema.parse(req.body);
-    const result = await withControlPlaneDb(db => executeQueuedJob(db, input.jobId), { write: true });
+    const result = await withControlPlaneDb(db => executeQueuedJob(db, input.jobId, input.workerId), { write: true });
     sendJson(res, 200, result);
   } catch (error) { apiError(res, error); }
 }

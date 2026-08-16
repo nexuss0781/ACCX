@@ -19,4 +19,10 @@ export function ensureSchema(db: ParadConnection): void {
   db.execute(`CREATE INDEX IF NOT EXISTS idx_audit_workspace_created ON audit_events(workspace_id, created_at)`);
   db.execute(`CREATE INDEX IF NOT EXISTS idx_leases_expiry ON secret_leases(expires_at)`);
   db.execute(`CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash)`);
+  const columns = db.execute(`PRAGMA table_info(orchestration_jobs)`).rows as { name: string }[];
+  const addColumn = (name: string, definition: string) => { if (!columns.some(column => column.name === name)) db.execute(`ALTER TABLE orchestration_jobs ADD COLUMN ${definition}`); };
+  addColumn("claimed_by", "claimed_by TEXT");
+  addColumn("claimed_at", "claimed_at TEXT");
+  addColumn("attempts", "attempts INTEGER NOT NULL DEFAULT 0");
+  db.execute(`CREATE INDEX IF NOT EXISTS idx_jobs_dispatch ON orchestration_jobs(status, created_at)`);
 }

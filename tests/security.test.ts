@@ -50,12 +50,13 @@ describe("ACCX zero-plaintext boundary", () => {
   it("fails an unregistered provider action without querying an encrypted secret version", async () => {
     const execute = vi.fn((sql: string) => {
       if (sql.includes("FROM orchestration_jobs")) {
-        return { rows: [{ id: "job-1", action: "provider.unsupported", status: "queued", service_identity_id: "identity-1", project_id: "project-1", workspace_id: "workspace-1", input_json: "{}" }] };
+        return { rows: [{ id: "job-1", action: "provider.unsupported", status: "running", claimed_by: "internal-worker", service_identity_id: "identity-1", project_id: "project-1", workspace_id: "workspace-1", input_json: "{}" }] };
       }
       return { rows: [] };
     });
     const result = await executeQueuedJob({ execute } as never, "job-1");
     expect(result).toEqual({ jobId: "job-1", status: "failed", message: "No trusted provider adapter is registered for this action." });
+    expect(execute.mock.calls.some(([sql]) => String(sql).includes("claimed_by"))).toBe(true);
     expect(execute.mock.calls.some(([sql]) => String(sql).includes("encrypted_data_key_json"))).toBe(false);
   });
 });

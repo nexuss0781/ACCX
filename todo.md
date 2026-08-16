@@ -8,7 +8,7 @@
 - [x] Add version activation, rotation validation, short-lived leases, revocation, and audit logging.
 - [x] Add service identities and server-only short-lived workload-token provisioning with revocation.
 - [x] Add trusted orchestrator job submission, server-side action policies, and sanitized results.
-- [ ] Add a dedicated worker deployment contract for credential-consuming actions.
+- [x] Add a dedicated worker deployment contract for credential-consuming actions.
 - [x] Create the shared TypeScript and Zod SDK contract layer.
 - [x] Create the publishable npm accx SDK with no plaintext resolution API.
 - [x] Create the publishable PyPI accx SDK with no plaintext resolution API.
@@ -34,3 +34,5 @@
 - [x] Replace account password reveal, copy, local account persistence, local credential notes, and local login/register paths with metadata-only cloud workflows.
 - [x] Add focused frontend security regression tests and a final source audit confirming no ACCX credential values reach browser storage or clipboard APIs.
 - [x] Add concurrency and conflict controls for Vercel requests so Paradox-DB local-wins synchronization cannot silently overwrite independent vault updates.
+- [x] Define a deployable worker contract with authenticated execution, replay protection, and no browser/plaintext boundary violations.
+- [x] Add worker configuration documentation, deployment variables, and security-focused contract tests.
