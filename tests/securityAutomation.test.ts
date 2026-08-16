@@ -21,4 +21,13 @@ describe("ACCX security automation and runbooks", () => {
     expect(documents).toContain("ciphertext-only");
     expect(documents).not.toMatch(/pk_[A-Za-z0-9]{12,}|ACCX_VAULT_MASTER_KEY\s*=\s*[^\s]/);
   });
+
+  it("keeps registry publication manually gated and credential-protected", () => {
+    const publication = source(".github/workflows/publish.yml");
+    expect(publication).toContain("workflow_dispatch");
+    expect(publication).toContain("inputs.confirm_publish == 'PUBLISH'");
+    expect(publication).toContain("secrets.NPM_TOKEN");
+    expect(publication).toContain("secrets.PYPI_TOKEN");
+    expect(source("docs/package-publication.md")).toContain("external, irreversible distribution action");
+  });
 });
