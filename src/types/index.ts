@@ -21,6 +21,11 @@ export interface Account {
   rotationState?: 'stable' | 'rotation_required' | 'rotating';
   expiresAt?: string | null;
   lastUsedAt?: string | null;
+  fieldKind?: 'password' | 'api_token' | 'refresh_token' | 'client_secret' | 'recovery_code' | 'cookie' | 'ssh_key' | 'custom';
+  tags?: string[];
+  aliases?: string[];
+  healthStatus?: 'unknown' | 'healthy' | 'attention' | 'failed';
+  lastRotatedAt?: string | null;
   username?: string;
   email?: string;
   description?: string;

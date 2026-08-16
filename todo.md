@@ -54,7 +54,7 @@
 - [x] Add provider adapter templates and safe health-check orchestration without retaining secret-bearing results.
 - [x] Add npm SDK retry, explicit errors, rotation-aware metadata refresh, and restricted browser entry-point documentation.
 - [x] Add Python SDK async support, explicit errors, safe logging/redaction helpers, and optional framework integration boundaries.
-- [ ] Add metadata-only UI workflows for rotation, revocation, access history, tags, typed account templates, import/export, and emergency controls.
+- [x] Add metadata-only UI workflows for rotation, revocation, access history, tags, typed account templates, import/export, and emergency controls.
 - [ ] Add CI dependency audit, secret scanning, code scanning, artifact checks, and automated release-verification workflows.
 - [ ] Add threat model, operational runbooks, backup/recovery procedures, monitoring controls, and incident-response exercise documentation.
 - [ ] Prepare versioned npm/PyPI publication workflows and perform release publication only after the user authorizes external publishing.

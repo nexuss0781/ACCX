@@ -21,4 +21,16 @@ describe("frontend metadata-only boundary", () => {
     expect(verifyPassword("a high entropy test passphrase", stored)).toBe(true);
     expect(verifyPassword("incorrect passphrase", stored)).toBe(false);
   });
+
+  it("keeps metadata management and emergency controls reference-only and step-up protected", () => {
+    const accounts = source("src/pages/AccountsPage.tsx");
+    const client = source("src/lib/accxApi.ts");
+    const lifecycle = source("api/v1/app/secrets/lifecycle.ts");
+    expect(accounts).toContain("Protected field type");
+    expect(accounts).toContain("Revoke and invalidate leases");
+    expect(accounts).not.toContain("password:");
+    expect(client).toContain("stepUpTotp");
+    expect(client).toContain("revokeMetadata");
+    expect(lifecycle).toContain("requireStepUp(db, req)");
+  });
 });
