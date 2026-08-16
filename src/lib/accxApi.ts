@@ -3,7 +3,9 @@ export type Environment = { id: string; label: 'development' | 'staging' | 'prod
 export type AppBootstrap = { user: { id: string; email: string; name: string; createdAt: string }; workspaceId: string; environments: Environment[]; secrets: CloudSecret[]; audit: unknown[] };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, { ...init, credentials: 'same-origin', headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) } });
+  const method = (init?.method || 'GET').toUpperCase();
+  const mutationHeaders = method === 'GET' ? {} : { 'X-ACCX-Request-Timestamp': String(Date.now()), 'X-ACCX-Request-Nonce': crypto.randomUUID().replace(/-/g, '') };
+  const response = await fetch(path, { ...init, credentials: 'same-origin', headers: { 'Content-Type': 'application/json', ...mutationHeaders, ...(init?.headers || {}) } });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error((payload as { error?: string }).error || 'Cloud request failed');
   return payload as T;

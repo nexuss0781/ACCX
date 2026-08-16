@@ -3,6 +3,7 @@ import { secretReferenceSchema } from "../../../shared/contracts.js";
 import type { ApiRequest, ApiResponse } from "../../_lib/http.js";
 import { apiError, sendJson } from "../../_lib/http.js";
 import { requireSession } from "../../_lib/auth.js";
+import { assertFreshMutation } from "../../_lib/integrity.js";
 import { withControlPlaneDb } from "../../_lib/paradox.js";
 import { registerSecretMetadata } from "../../_lib/vault.js";
 
@@ -13,6 +14,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
   try {
     const secret = await withControlPlaneDb(db => {
       const user = requireSession(db, req);
+      assertFreshMutation(db, req, { actorId: user.id, scope: "app.secrets.create", limit: 30, windowMs: 60_000 });
       return registerSecretMetadata(db, { ...schema.parse(req.body), actorId: user.id });
     }, { write: true });
     sendJson(res, 201, { secret });

@@ -32,7 +32,7 @@ export function authorizeWorker(req: ApiRequest): void {
 
 export function apiError(res: ApiResponse, error: unknown): void {
   const message = error instanceof Error ? error.message : "Request failed";
-  const status = message === "UNAUTHORIZED" ? 401 : message === "FORBIDDEN" ? 403 : message === "CONFLICT" ? 409 : message === "PARADOX_CONFLICT" ? 409 : 500;
-  const errorText = status === 401 ? "Unauthorized" : status === 403 ? "Forbidden" : status === 409 ? "Request conflicts with existing control-plane state." : "Internal server error";
+  const status = message === "UNAUTHORIZED" ? 401 : message === "FORBIDDEN" || message === "STEP_UP_REQUIRED" ? 403 : message === "CONFLICT" || message === "PARADOX_CONFLICT" || message === "REPLAYED_REQUEST" ? 409 : message === "RATE_LIMITED" ? 429 : message === "STALE_REQUEST" ? 400 : 500;
+  const errorText = status === 401 ? "Unauthorized" : status === 403 ? "Forbidden" : status === 409 ? "Request conflicts with existing control-plane state." : status === 429 ? "Too many requests." : status === 400 ? "Request expired or invalid." : "Internal server error";
   sendJson(res, status, { error: errorText });
 }

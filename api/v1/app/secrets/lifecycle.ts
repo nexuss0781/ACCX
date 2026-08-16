@@ -3,6 +3,7 @@ import { secretReferenceSchema } from "../../../../shared/contracts.js";
 import type { ApiRequest, ApiResponse } from "../../../_lib/http.js";
 import { apiError, sendJson } from "../../../_lib/http.js";
 import { requireSession, requireStepUp } from "../../../_lib/auth.js";
+import { assertFreshMutation } from "../../../_lib/integrity.js";
 import { withControlPlaneDb } from "../../../_lib/paradox.js";
 import { purgeSoftDeletedSecrets, softDeleteSecret, updateSecretMetadata } from "../../../_lib/vault.js";
 
@@ -17,6 +18,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
     const input = schema.parse(req.body);
     const result = await withControlPlaneDb(db => {
       const user = input.operation === "metadata" ? requireSession(db, req) : requireStepUp(db, req);
+      assertFreshMutation(db, req, { actorId: user.id, scope: `app.secrets.${input.operation}`, limit: 20, windowMs: 60_000 });
       if (input.operation === "metadata") { updateSecretMetadata(db, { ...input, actorId: user.id }); return { updated: true }; }
       if (input.operation === "soft_delete") { softDeleteSecret(db, { ...input, actorId: user.id }); return { deleted: true }; }
       return { purged: purgeSoftDeletedSecrets(db, { workspaceId: input.workspaceId, actorId: user.id, force: input.force }) };

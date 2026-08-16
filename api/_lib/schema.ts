@@ -8,6 +8,8 @@ export function ensureSchema(db: ParadConnection): void {
   db.execute(`CREATE TABLE IF NOT EXISTS mfa_recovery_codes (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, code_hash TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL, used_at TEXT)`);
   db.execute(`CREATE TABLE IF NOT EXISTS webauthn_credentials (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, credential_id TEXT NOT NULL UNIQUE, public_key_b64 TEXT NOT NULL, counter INTEGER NOT NULL, transports_json TEXT NOT NULL, label TEXT NOT NULL, device_type TEXT NOT NULL, backed_up INTEGER NOT NULL, created_at TEXT NOT NULL, last_used_at TEXT, revoked_at TEXT)`);
   db.execute(`CREATE TABLE IF NOT EXISTS webauthn_challenges (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, purpose TEXT NOT NULL CHECK(purpose IN ('register','step_up')), challenge_hash TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL, consumed_at TEXT)`);
+  db.execute(`CREATE TABLE IF NOT EXISTS request_nonces (nonce TEXT PRIMARY KEY, actor_id TEXT NOT NULL, scope TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL)`);
+  db.execute(`CREATE TABLE IF NOT EXISTS rate_limit_windows (bucket TEXT PRIMARY KEY, window_started_at INTEGER NOT NULL, count INTEGER NOT NULL)`);
   db.execute(`CREATE TABLE IF NOT EXISTS workspaces (id TEXT PRIMARY KEY, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL)`);
   db.execute(`CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, name TEXT NOT NULL, slug TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(workspace_id, slug))`);
   db.execute(`CREATE TABLE IF NOT EXISTS environments (id TEXT PRIMARY KEY, project_id TEXT NOT NULL, label TEXT NOT NULL CHECK(label IN ('development','staging','production')), created_at TEXT NOT NULL, UNIQUE(project_id, label))`);
@@ -29,6 +31,7 @@ export function ensureSchema(db: ParadConnection): void {
   db.execute(`CREATE INDEX IF NOT EXISTS idx_mfa_totp_user_active ON mfa_totp_factors(user_id, revoked_at, verified_at)`);
   db.execute(`CREATE INDEX IF NOT EXISTS idx_webauthn_user_active ON webauthn_credentials(user_id, revoked_at)`);
   db.execute(`CREATE INDEX IF NOT EXISTS idx_webauthn_challenge_user ON webauthn_challenges(user_id, purpose, expires_at)`);
+  db.execute(`CREATE INDEX IF NOT EXISTS idx_request_nonces_expiry ON request_nonces(expires_at)`);
   const columns = db.execute(`PRAGMA table_info(orchestration_jobs)`).rows as { name: string }[];
   const addColumn = (name: string, definition: string) => { if (!columns.some(column => column.name === name)) db.execute(`ALTER TABLE orchestration_jobs ADD COLUMN ${definition}`); };
   addColumn("claimed_by", "claimed_by TEXT");
