@@ -2,6 +2,8 @@ import type { ParadConnection } from "parad";
 
 export function ensureSchema(db: ParadConnection): void {
   db.execute(`CREATE TABLE IF NOT EXISTS control_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`);
+  db.execute(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, name TEXT NOT NULL, password_hash TEXT NOT NULL, created_at TEXT NOT NULL)`);
+  db.execute(`CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, token_hash TEXT NOT NULL UNIQUE, expires_at TEXT NOT NULL, created_at TEXT NOT NULL, revoked_at TEXT)`);
   db.execute(`CREATE TABLE IF NOT EXISTS workspaces (id TEXT PRIMARY KEY, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL)`);
   db.execute(`CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, name TEXT NOT NULL, slug TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(workspace_id, slug))`);
   db.execute(`CREATE TABLE IF NOT EXISTS environments (id TEXT PRIMARY KEY, project_id TEXT NOT NULL, label TEXT NOT NULL CHECK(label IN ('development','staging','production')), created_at TEXT NOT NULL, UNIQUE(project_id, label))`);
@@ -16,4 +18,5 @@ export function ensureSchema(db: ParadConnection): void {
   db.execute(`CREATE INDEX IF NOT EXISTS idx_secrets_reference ON secrets(reference)`);
   db.execute(`CREATE INDEX IF NOT EXISTS idx_audit_workspace_created ON audit_events(workspace_id, created_at)`);
   db.execute(`CREATE INDEX IF NOT EXISTS idx_leases_expiry ON secret_leases(expires_at)`);
+  db.execute(`CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash)`);
 }

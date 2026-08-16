@@ -12,8 +12,8 @@
 - [x] Create the shared TypeScript and Zod SDK contract layer.
 - [x] Create the publishable npm accx SDK with no plaintext resolution API.
 - [x] Create the publishable PyPI accx SDK with no plaintext resolution API.
-- [ ] Connect the existing frontend only to metadata and audit APIs, without redesigning it.
-- [ ] Remove the legacy password clipboard handler and local credential persistence during the backend metadata integration, while preserving the completed frontend design.
+- [x] Connect the existing frontend only to metadata and audit APIs, without redesigning it.
+- [x] Remove the legacy password clipboard handler and local credential persistence during the backend metadata integration, while preserving the completed frontend design.
 - [x] Add tests for encryption, RBAC, lease expiry/revocation, audit redaction, and SDK surface restrictions.
 - [x] Verify Vercel compatibility, type checks, builds, package artifacts, and security source audit.
 - [x] Commit and push the completed backend upgrade to a dedicated GitHub branch.
@@ -30,7 +30,7 @@
 - [x] Add explicit safe failure behavior for unregistered provider actions and provider execution timeouts.
 - [x] Build and install the npm SDK package artifact in an isolated verification directory.
 - [x] Build and install the PyPI SDK package artifact in an isolated verification directory.
-- [ ] Add frontend API client, cloud metadata state, and server session bootstrap without altering existing page layout or styling.
-- [ ] Replace account password reveal, copy, local account persistence, local credential notes, and local login/register paths with metadata-only cloud workflows.
-- [ ] Add browser-flow tests and a final source audit confirming no ACCX credential values reach browser storage or clipboard APIs.
+- [x] Add frontend API client, cloud metadata state, and server session bootstrap without altering existing page layout or styling.
+- [x] Replace account password reveal, copy, local account persistence, local credential notes, and local login/register paths with metadata-only cloud workflows.
+- [x] Add focused frontend security regression tests and a final source audit confirming no ACCX credential values reach browser storage or clipboard APIs.
 - [x] Add concurrency and conflict controls for Vercel requests so Paradox-DB local-wins synchronization cannot silently overwrite independent vault updates.
