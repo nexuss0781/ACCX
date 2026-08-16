@@ -4,14 +4,14 @@
 - [x] Define the backend service boundaries, zero-plaintext invariant, and shared SDK contract package.
 - [x] Add the cloud backend scaffold compatible with Vercel serverless deployment.
 - [x] Add multi-tenant workspace, project, environment, membership, and scope-based authorization models.
-- [ ] Add envelope-encrypted secret metadata and version records without frontend plaintext access.
-- [ ] Add version activation, rotation validation, short-lived leases, revocation, and audit logging.
+- [x] Add envelope-encrypted secret metadata and version records without frontend plaintext access.
+- [x] Add version activation, rotation validation, short-lived leases, revocation, and audit logging.
 - [ ] Add service identities and encrypted one-time workload-token provisioning with revocation.
 - [ ] Add trusted orchestrator job submission, server-side action policies, and sanitized results.
 - [ ] Add a dedicated worker deployment contract for credential-consuming actions.
-- [ ] Create the shared TypeScript and Zod SDK contract layer.
-- [ ] Create the publishable npm accx SDK with no plaintext resolution API.
-- [ ] Create the publishable PyPI accx SDK with no plaintext resolution API.
+- [x] Create the shared TypeScript and Zod SDK contract layer.
+- [x] Create the publishable npm accx SDK with no plaintext resolution API.
+- [x] Create the publishable PyPI accx SDK with no plaintext resolution API.
 - [ ] Connect the existing frontend only to metadata and audit APIs, without redesigning it.
 - [ ] Add tests for encryption, RBAC, lease expiry/revocation, audit redaction, and SDK surface restrictions.
 - [ ] Verify Vercel compatibility, type checks, builds, package artifacts, and security source audit.
