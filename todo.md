@@ -22,4 +22,4 @@
 - [x] Review the Paradox-DB skill and configure the ACCX cloud data layer from its Vercel-compatible guidance.
 - [x] Build a request-scoped Paradox-DB adapter that pulls, performs a transaction, pushes, and closes the encrypted database within each Vercel invocation.
 - [ ] Store the Paradox gateway API key, passphrase, and gateway configuration as server-only Vercel secrets and never in URLs, browser code, or repository files.
-- [ ] Add concurrency and conflict controls for Vercel requests so Paradox-DB local-wins synchronization cannot silently overwrite independent vault updates.
+- [x] Add concurrency and conflict controls for Vercel requests so Paradox-DB local-wins synchronization cannot silently overwrite independent vault updates.

@@ -23,6 +23,7 @@ export function authorizeAdmin(req: ApiRequest): void {
 
 export function apiError(res: ApiResponse, error: unknown): void {
   const message = error instanceof Error ? error.message : "Request failed";
-  const status = message === "UNAUTHORIZED" ? 401 : 500;
-  sendJson(res, status, { error: status === 401 ? "Unauthorized" : "Internal server error" });
+  const status = message === "UNAUTHORIZED" ? 401 : message === "FORBIDDEN" ? 403 : message === "PARADOX_CONFLICT" ? 409 : 500;
+  const errorText = status === 401 ? "Unauthorized" : status === 403 ? "Forbidden" : status === 409 ? "Concurrent update detected; retry the request." : "Internal server error";
+  sendJson(res, status, { error: errorText });
 }
