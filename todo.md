@@ -1,0 +1,24 @@
+# ACCX Backend Upgrade TODO
+
+- [x] Confirm the existing Vercel frontend structure and leave its visual design unchanged.
+- [x] Define the backend service boundaries, zero-plaintext invariant, and shared SDK contract package.
+- [x] Add the cloud backend scaffold compatible with Vercel serverless deployment.
+- [x] Add multi-tenant workspace, project, environment, membership, and scope-based authorization models.
+- [ ] Add envelope-encrypted secret metadata and version records without frontend plaintext access.
+- [ ] Add version activation, rotation validation, short-lived leases, revocation, and audit logging.
+- [ ] Add service identities and encrypted one-time workload-token provisioning with revocation.
+- [ ] Add trusted orchestrator job submission, server-side action policies, and sanitized results.
+- [ ] Add a dedicated worker deployment contract for credential-consuming actions.
+- [ ] Create the shared TypeScript and Zod SDK contract layer.
+- [ ] Create the publishable npm accx SDK with no plaintext resolution API.
+- [ ] Create the publishable PyPI accx SDK with no plaintext resolution API.
+- [ ] Connect the existing frontend only to metadata and audit APIs, without redesigning it.
+- [ ] Add tests for encryption, RBAC, lease expiry/revocation, audit redaction, and SDK surface restrictions.
+- [ ] Verify Vercel compatibility, type checks, builds, package artifacts, and security source audit.
+- [ ] Commit and push the completed backend upgrade to a dedicated GitHub branch.
+- [x] Keep the existing Vercel frontend and add all backend API routes within the same Vercel project and repository.
+- [x] Design orchestration for Vercel serverless execution without relying on a separate website or local credential storage.
+- [x] Review the Paradox-DB skill and configure the ACCX cloud data layer from its Vercel-compatible guidance.
+- [x] Build a request-scoped Paradox-DB adapter that pulls, performs a transaction, pushes, and closes the encrypted database within each Vercel invocation.
+- [ ] Store the Paradox gateway API key, passphrase, and gateway configuration as server-only Vercel secrets and never in URLs, browser code, or repository files.
+- [ ] Add concurrency and conflict controls for Vercel requests so Paradox-DB local-wins synchronization cannot silently overwrite independent vault updates.
