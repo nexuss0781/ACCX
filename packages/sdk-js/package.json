@@ -3,14 +3,23 @@
   "version": "0.1.0",
   "description": "ACCX cloud control-plane SDK. It accepts references and returns sanitized results only.",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
   },
-  "types": "./src/index.ts",
-  "peerDependencies": {
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
     "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2"
   }
 }

@@ -3,9 +3,9 @@ import {
   sanitizedJobResultSchema,
   type JobSubmission,
   type SanitizedJobResult,
-} from "../../../shared/contracts.js";
+} from "./contracts.js";
 
-export * from "../../../shared/contracts.js";
+export * from "./contracts.js";
 
 export type AccxClientOptions = {
   baseUrl: string;
