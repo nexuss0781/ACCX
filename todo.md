@@ -21,5 +21,9 @@
 - [x] Design orchestration for Vercel serverless execution without relying on a separate website or local credential storage.
 - [x] Review the Paradox-DB skill and configure the ACCX cloud data layer from its Vercel-compatible guidance.
 - [x] Build a request-scoped Paradox-DB adapter that pulls, performs a transaction, pushes, and closes the encrypted database within each Vercel invocation.
-- [ ] Store the Paradox gateway API key, passphrase, and gateway configuration as server-only Vercel secrets and never in URLs, browser code, or repository files.
+- [x] Store the Paradox gateway API key, passphrase, and gateway configuration as server-only Vercel secrets and never in URLs, browser code, or repository files.
+- [x] Generate and store the ACCX master key, administrator key, and Paradox passphrase in managed server-only configuration.
+- [x] Add the issued PARADOX_API_KEY to managed server-only configuration without committing it.
+- [x] Register or log in to the Paradox gateway service account and securely obtain its server-only API key.
+- [x] Provision and verify the live encrypted ACCX Paradox control-plane database.
 - [x] Add concurrency and conflict controls for Vercel requests so Paradox-DB local-wins synchronization cannot silently overwrite independent vault updates.

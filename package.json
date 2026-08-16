@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:live-paradox": "ACCX_LIVE_PARADOX_TEST=true vitest run tests/liveParadox.test.ts",
     "check:api": "tsc -p tsconfig.api.json",
     "check:sdk": "tsc -p tsconfig.sdk.json"
   },

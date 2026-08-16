@@ -8,7 +8,7 @@ function getRequired(name: RequiredEnvironment): string {
 }
 
 export const serverEnv = {
-  paradoxGatewayUrl: process.env.PARADOX_GATEWAY_URL ?? "https://paradox-db.onrender.com/v1",
+  paradoxGatewayUrl: process.env.PARADOX_GATEWAY_URL ?? "https://paradoxdb.onrender.com/v1",
   paradoxResolverUrl: process.env.PARADOX_RESOLVER_URL ?? "https://paradox-domain.onrender.com/active-domain.json",
   paradoxApiKey: () => getRequired("PARADOX_API_KEY"),
   paradoxPassphrase: () => getRequired("PARADOX_PASSPHRASE"),

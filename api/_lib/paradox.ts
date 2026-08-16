@@ -7,14 +7,19 @@ import { ensureSchema } from "./schema.js";
 const databaseName = "accx-control-plane";
 const projectName = "accx";
 
+function normalizeGatewayUrl(value: string): string {
+  const trimmed = value.replace(/\/+$/, "");
+  return trimmed.endsWith("/v1") ? trimmed : `${trimmed}/v1`;
+}
+
 async function resolveGatewayUrl(): Promise<string> {
   try {
     const response = await fetch(serverEnv.paradoxResolverUrl, { cache: "no-store" });
-    if (!response.ok) return serverEnv.paradoxGatewayUrl;
+    if (!response.ok) return normalizeGatewayUrl(serverEnv.paradoxGatewayUrl);
     const payload = await response.json() as { gatewayUrl?: string };
-    return payload.gatewayUrl || serverEnv.paradoxGatewayUrl;
+    return normalizeGatewayUrl(payload.gatewayUrl || serverEnv.paradoxGatewayUrl);
   } catch {
-    return serverEnv.paradoxGatewayUrl;
+    return normalizeGatewayUrl(serverEnv.paradoxGatewayUrl);
   }
 }
 
@@ -38,9 +43,15 @@ export async function withControlPlaneDb<T>(operation: (db: ParadConnection) => 
   });
   const internal = db as unknown as InternalConnection;
   const gateway = new GatewayClient(gatewayUrl, apiKey);
-  const snapshot = await gateway.download(databaseName, undefined, internal.databaseId, internal.projectId);
-  const baseVersion = snapshot.version ?? 0;
-  if (snapshot.bytes?.length) await internal.engine.replaceBytes(snapshot.bytes);
+  let baseVersion = 0;
+  try {
+    const snapshot = await gateway.download(databaseName, undefined, internal.databaseId, internal.projectId);
+    baseVersion = snapshot.version ?? 0;
+    if (snapshot.bytes?.length) await internal.engine.replaceBytes(snapshot.bytes);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (!/no file data available/i.test(message)) throw error;
+  }
 
   try {
     ensureSchema(db);
