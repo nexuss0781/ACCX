@@ -10,8 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "check:api": "tsc -p tsconfig.api.json",
-    "check:sdk": "tsc -p tsconfig.sdk.json",
-    "test": "vitest run"
+    "check:sdk": "tsc -p tsconfig.sdk.json"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -20,7 +19,7 @@
     "parad": "^2.2.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router-dom": "^7.6.1",
+    "react-router-dom": "^7.18.2",
     "recharts": "^2.15.3",
     "zod": "^4.4.3",
     "zustand": "^5.0.5"
