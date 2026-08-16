@@ -53,3 +53,9 @@
 - Symptom: the new orchestration-control test expected a literal approval audit event even though the implementation intentionally selects between approval and ordinary submission events in one conditional expression.
 - Resolution: adjusted the assertion to verify the conditional expression rather than weakening the server-side approval policy.
 - Verification: orchestration-control tests and API type checks passed.
+
+## 2026-08-16 — SDK callback and redaction compilation
+
+- Symptom: the new JavaScript SDK initially had an incomplete redaction tuple expression and passed Zod parser methods directly into array mapping, which conflicted with callback index arguments.
+- Resolution: used an explicit key-value tuple map and item-only parser callbacks.
+- Verification: JavaScript SDK type checks, package build, Python wheel build, and SDK resilience tests passed.

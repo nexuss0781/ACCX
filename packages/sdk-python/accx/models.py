@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 Scope = Literal["metadata.read", "secret.rotate", "provider.publish", "job.execute", "audit.read", "identity.manage"]
-JobStatus = Literal["queued", "running", "succeeded", "failed", "cancelled"]
+JobStatus = Literal["awaiting_approval", "queued", "running", "succeeded", "failed", "cancelled"]
 
 
 @dataclass(frozen=True)
@@ -31,3 +31,22 @@ class SanitizedJobResult:
     status: JobStatus
     message: str
     completed_at: str | None
+
+
+@dataclass(frozen=True)
+class SecretMetadata:
+    id: str
+    provider: str
+    display_name: str
+    reference: str
+    environment: Literal["development", "staging", "production"]
+    status: Literal["pending", "active", "revoked"]
+    active_version: int
+    rotation_state: Literal["stable", "rotation_required", "rotating"]
+    expires_at: str | None
+    last_used_at: str | None
+    field_kind: str
+    tags: list[str]
+    aliases: list[str]
+    health_status: Literal["unknown", "healthy", "attention", "failed"]
+    last_rotated_at: str | None

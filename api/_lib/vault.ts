@@ -48,10 +48,10 @@ export function assertScopes(db: ParadConnection, workspaceId: string, subjectId
   if (!needed.every(scope => granted.includes(scope))) throw new Error("FORBIDDEN");
 }
 
-export function listSecretMetadata(db: ParadConnection, workspaceId: string): SecretMetadata[] {
+export function listSecretMetadata(db: ParadConnection, workspaceId: string, projectId?: string): SecretMetadata[] {
   const result = db.execute(
-    `SELECT s.id, s.provider, s.display_name, s.reference, e.label AS environment, s.status, s.active_version, s.rotation_state, s.expires_at, s.last_used_at, s.field_kind, s.tags_json, s.health_status, s.last_rotated_at, s.deleted_at, s.purge_after FROM secrets s JOIN environments e ON e.id = s.environment_id JOIN projects p ON p.id = e.project_id WHERE p.workspace_id = ? AND s.deleted_at IS NULL ORDER BY s.updated_at DESC`,
-    [workspaceId],
+    `SELECT s.id, s.provider, s.display_name, s.reference, e.label AS environment, s.status, s.active_version, s.rotation_state, s.expires_at, s.last_used_at, s.field_kind, s.tags_json, s.health_status, s.last_rotated_at, s.deleted_at, s.purge_after FROM secrets s JOIN environments e ON e.id = s.environment_id JOIN projects p ON p.id = e.project_id WHERE p.workspace_id = ? AND s.deleted_at IS NULL AND (? IS NULL OR e.project_id = ?) ORDER BY s.updated_at DESC`,
+    [workspaceId, projectId ?? null, projectId ?? null],
   );
   return rows<Row>(result).map(row => ({
     id: asString(row.id), provider: asString(row.provider), displayName: asString(row.display_name), reference: asString(row.reference), environment: asString(row.environment) as EnvironmentLabel,

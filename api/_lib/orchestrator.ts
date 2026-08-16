@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import type { ParadConnection } from "parad";
 import { type JobSubmission, type SanitizedJobResult, type Scope, sanitizedJobResultSchema } from "../../shared/contracts.js";
-import { assertScopes, hashOpaqueToken, recordAudit } from "./vault.js";
+import { assertScopes, hashOpaqueToken, listSecretMetadata, recordAudit } from "./vault.js";
 
 const now = () => new Date().toISOString();
 const actionPolicies: Record<string, { scopes: readonly Scope[]; approvalRequired: boolean; timeoutMs: number; egressClass: "provider" | "health" }> = {
@@ -62,10 +62,16 @@ export function provisionWorkloadToken(db: ParadConnection, input: { serviceIden
   return { tokenId, token, expiresAt };
 }
 
-function authenticateWorkload(db: ParadConnection, token: string): { identityId: string; projectId: string; workspaceId: string; scopes: Scope[] } {
+export function authenticateWorkload(db: ParadConnection, token: string): { identityId: string; projectId: string; workspaceId: string; scopes: Scope[] } {
   const record = first<{ service_identity_id: string; expires_at: string; token_revoked_at: string | null; identity_status: string; project_id: string; workspace_id: string; scopes_json: string }>(db.execute(`SELECT wt.service_identity_id, wt.expires_at, wt.revoked_at AS token_revoked_at, si.status AS identity_status, si.project_id, p.workspace_id, si.scopes_json FROM workload_tokens wt JOIN service_identities si ON si.id = wt.service_identity_id JOIN projects p ON p.id = si.project_id WHERE wt.token_digest = ?`, [hashOpaqueToken(token)]));
   if (!record || record.token_revoked_at || record.identity_status !== "active" || new Date(record.expires_at).getTime() <= Date.now()) throw new Error("UNAUTHORIZED");
   return { identityId: record.service_identity_id, projectId: record.project_id, workspaceId: record.workspace_id, scopes: JSON.parse(record.scopes_json) as Scope[] };
+}
+
+export function listWorkloadSecretMetadata(db: ParadConnection, workloadToken: string) {
+  const workload = authenticateWorkload(db, workloadToken);
+  if (!workload.scopes.includes("metadata.read")) throw new Error("FORBIDDEN");
+  return listSecretMetadata(db, workload.workspaceId, workload.projectId);
 }
 
 export function submitJob(db: ParadConnection, workloadToken: string, job: JobSubmission): SanitizedJobResult {
