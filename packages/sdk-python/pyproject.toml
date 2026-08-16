@@ -6,7 +6,17 @@ build-backend = "setuptools.build_meta"
 name = "accx"
 version = "0.1.0"
 description = "ACCX cloud control-plane SDK with reference-only credential orchestration."
+readme = "README.md"
 requires-python = ">=3.10"
+license = "MIT"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Security",
+]
+
+[project.urls]
+Repository = "https://github.com/nexuss0781/ACCX"
 
 [tool.setuptools]
 packages = ["accx"]

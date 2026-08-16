@@ -16,11 +16,11 @@ describe("ACCX managed server secrets", () => {
     const response = await fetch(`${serverEnv.paradoxGatewayUrl}/auth/me`);
     // A missing key is expected here; a 401 proves the active gateway route exists.
     expect(response.status).toBe(401);
-  });
+  }, 15_000);
 
   it("authenticates the server-only Paradox API key", async () => {
     const gateway = new GatewayClient(serverEnv.paradoxGatewayUrl, process.env.PARADOX_API_KEY);
     const profile = await gateway.authMe();
     expect(profile).toHaveProperty("email", "nexuss0781@gmail.com");
-  });
+  }, 15_000);
 });

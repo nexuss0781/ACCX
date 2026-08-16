@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "ACCX cloud control-plane SDK. It accepts references and returns sanitized results only.",
   "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "repository": { "type": "git", "url": "https://github.com/nexuss0781/ACCX.git", "directory": "packages/sdk-js" },
+  "publishConfig": { "access": "public" },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

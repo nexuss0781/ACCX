@@ -29,3 +29,15 @@
 - Symptom: the existing unregistered-provider executor fixture modeled a queued job after the executor gained an atomic `queued` to `running` claim step, so it correctly appeared unavailable to the simulated worker.
 - Resolution: updated the fixture to represent the post-claim job state and added dedicated contract tests for worker-only configuration, authenticated dispatch, and replay-safe claiming.
 - Verification: `npm test`, `npm run check:api`, `npm run check:sdk`, and `npm run build` passed.
+
+## 2026-08-16 — Hosted gateway probe cold start
+
+- Symptom: the two managed Paradox gateway probes intermittently exceeded Vitest’s default five-second timeout even though a bounded direct probe returned HTTP 401 and the gateway was reachable.
+- Resolution: assigned a 15-second timeout only to those two external integration tests; response and authentication assertions were unchanged.
+- Verification: the full suite passed with 16 tests and one opt-in live test skipped.
+
+## 2026-08-16 — PyPI release metadata validation
+
+- Symptom: the first PyPI artifact build rejected an unsupported `project.repository` field, and a follow-up section placement temporarily treated classifiers as URLs.
+- Resolution: moved the repository link into `[project.urls]` and kept classifiers in the project table; the license now uses the SPDX string form.
+- Verification: the `accx-0.1.0-py3-none-any.whl` artifact built successfully and the npm dry-run reported only the ten intended SDK files.

@@ -36,3 +36,13 @@
 - [x] Add concurrency and conflict controls for Vercel requests so Paradox-DB local-wins synchronization cannot silently overwrite independent vault updates.
 - [x] Define a deployable worker contract with authenticated execution, replay protection, and no browser/plaintext boundary violations.
 - [x] Add worker configuration documentation, deployment variables, and security-focused contract tests.
+- [x] Run a release-readiness audit across Vercel routes, worker dispatch, session cookies, and secret boundaries.
+- [x] Add end-to-end smoke coverage for authenticated metadata bootstrap, worker dispatch authorization, and sanitized responses.
+- [x] Prepare final SDK/package release documentation and deployment handoff without publishing or exposing secrets.
+- [ ] Save a final verified project checkpoint for release readiness.
+
+> Historical continuation items added 2026-08-16 after the frontend migration and dedicated worker contract were completed.
+
+- [x] Add a dedicated worker deployment contract for credential-consuming actions.
+- [x] Define a deployable worker contract with authenticated execution, replay protection, and no browser/plaintext boundary violations.
+- [x] Add worker configuration documentation, deployment variables, and security-focused contract tests.
