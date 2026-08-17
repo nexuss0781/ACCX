@@ -57,7 +57,7 @@
 - [x] Add metadata-only UI workflows for rotation, revocation, access history, tags, typed account templates, import/export, and emergency controls.
 - [x] Add CI dependency audit, secret scanning, code scanning, artifact checks, and automated release-verification workflows.
 - [x] Add threat model, operational runbooks, backup/recovery procedures, monitoring controls, and incident-response exercise documentation.
-- [ ] Prepare versioned npm/PyPI publication workflows and perform release publication only after the user authorizes external publishing.
+- [x] Prepare versioned npm/PyPI publication workflows and perform the authorized PyPI publication; npm publication remains pending selection of a registry-approved scoped package name.
 
 > Historical continuation items added 2026-08-16 after the frontend migration and dedicated worker contract were completed.
 
