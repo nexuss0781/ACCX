@@ -1,9 +1,9 @@
 # ACCX SDK
 
-Install with `npm install accx` after publishing this package.
+Install with `npm install @nexuss0781/accx` after publishing this package.
 
 ```ts
-import { AccxClient } from "accx";
+import { AccxClient } from "@nexuss0781/accx";
 
 const accx = new AccxClient({
   baseUrl: process.env.ACCX_BASE_URL!,
@@ -34,4 +34,4 @@ The metadata cache is bounded and can be cleared with `clearMetadataCache()` aft
 
 ## Browser entry point
 
-`import { AccxBrowserMetadataClient } from "accx/browser"` is intentionally restricted to same-origin, session-authenticated **metadata listing**. It accepts no workload token and has no secret-resolution, clipboard, export, or persistent storage method.
+`import { AccxBrowserMetadataClient } from "@nexuss0781/accx/browser"` is intentionally restricted to same-origin, session-authenticated **metadata listing**. It accepts no workload token and has no secret-resolution, clipboard, export, or persistent storage method.

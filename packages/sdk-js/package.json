@@ -1,5 +1,5 @@
 {
-  "name": "accx",
+  "name": "@nexuss0781/accx",
   "version": "0.1.0",
   "description": "ACCX cloud control-plane SDK. It accepts references and returns sanitized results only.",
   "type": "module",

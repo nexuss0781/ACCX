@@ -64,3 +64,4 @@
 - [x] Add a dedicated worker deployment contract for credential-consuming actions.
 - [x] Define a deployable worker contract with authenticated execution, replay protection, and no browser/plaintext boundary violations.
 - [x] Add worker configuration documentation, deployment variables, and security-focused contract tests.
+- [x] Publish the validated JavaScript SDK as the registry-approved scoped package `@nexuss0781/accx` using the user-supplied npm token.
