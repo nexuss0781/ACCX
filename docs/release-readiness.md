@@ -18,7 +18,7 @@ The deterministic suite includes encryption, RBAC, lease, audit-redaction, SDK-s
 
 ## Vercel configuration
 
-The Vercel project must contain the server-only values already documented by the environment accessor, including `ACCX_VAULT_MASTER_KEY`, `ACCX_ADMIN_KEY`, `ACCX_WORKER_KEY`, `PARADOX_PASSPHRASE`, `PARADOX_API_KEY`, `PARADOX_GATEWAY_URL`, and `PARADOX_RESOLVER_URL`. These values must never be placed in `VITE_*` variables, committed files, SDK responses, URLs, browser storage, or logs.
+The Vercel project must contain the server-only values already documented by the environment accessor: `DATABASE_URL`, `ACCX_VAULT_MASTER_KEY`, `ACCX_ADMIN_KEY`, and `ACCX_WORKER_KEY`. `DATABASE_URL` is the canonical Paradox connection URL and contains the project/database target, passphrase, active gateway, and API token. These values must never be placed in `VITE_*` variables, committed files, SDK responses, browser storage, or logs.
 
 The consolidated `/api/v1/worker` endpoint is not a browser API. Its `dispatch_jobs` and `execute_job` subcommands require the worker key and should be reachable only by the private worker runtime and controlled operational tooling. The consolidated `/api/v1/admin` endpoint is also server-to-server and requires the administrator key. The worker runtime receives only its HTTPS control-plane origin, worker key, and audit identifier as described in [worker-deployment.md](./worker-deployment.md).
 

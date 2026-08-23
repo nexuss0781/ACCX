@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 .env
+.accx-production.env
 
 # Editor directories and files
 .vscode/*

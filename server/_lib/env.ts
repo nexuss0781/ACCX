@@ -1,4 +1,4 @@
-const required = ["PARADOX_API_KEY", "PARADOX_PASSPHRASE", "ACCX_VAULT_MASTER_KEY", "ACCX_ADMIN_KEY", "ACCX_WORKER_KEY"] as const;
+const required = ["DATABASE_URL", "ACCX_VAULT_MASTER_KEY", "ACCX_ADMIN_KEY", "ACCX_WORKER_KEY"] as const;
 type RequiredEnvironment = (typeof required)[number];
 
 function getRequired(name: RequiredEnvironment): string {
@@ -8,10 +8,7 @@ function getRequired(name: RequiredEnvironment): string {
 }
 
 export const serverEnv = {
-  paradoxGatewayUrl: process.env.PARADOX_GATEWAY_URL ?? "https://paradoxdb.onrender.com/v1",
-  paradoxResolverUrl: process.env.PARADOX_RESOLVER_URL ?? "https://paradox-domain.onrender.com/active-domain.json",
-  paradoxApiKey: () => getRequired("PARADOX_API_KEY"),
-  paradoxPassphrase: () => getRequired("PARADOX_PASSPHRASE"),
+  databaseUrl: () => getRequired("DATABASE_URL"),
   vaultMasterKey: () => getRequired("ACCX_VAULT_MASTER_KEY"),
   adminKey: () => getRequired("ACCX_ADMIN_KEY"),
   workerKey: () => getRequired("ACCX_WORKER_KEY"),

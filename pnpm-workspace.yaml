@@ -1,2 +1,2 @@
 minimumReleaseAgeExclude:
-  - parad@2.2.2
+  - parad@2.2.2 || 2.2.4
