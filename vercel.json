@@ -19,10 +19,7 @@
   "functions": {
     "api/**/*.ts": {
       "maxDuration": 60,
-      "includeFiles": [
-        "node_modules/sql.js/dist/sql-wasm.wasm",
-        "node_modules/.pnpm/sql.js@*/node_modules/sql.js/dist/sql-wasm.wasm"
-      ]
+      "includeFiles": "node_modules/**/sql.js/dist/sql-wasm.wasm"
     }
   }
 }
