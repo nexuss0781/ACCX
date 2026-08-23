@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { assertScopes } from "../api/_lib/vault.js";
+import { assertScopes } from "../server/_lib/vault.js";
 
 const source = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 
@@ -17,15 +17,15 @@ describe("ACCX authorization abuse cases", () => {
   });
 
   it("keeps metadata and audit queries tenant-filtered and never selects plaintext columns", () => {
-    const vault = source("api/_lib/vault.ts");
+    const vault = source("server/_lib/vault.ts");
     expect(vault).toContain("WHERE p.workspace_id = ? AND s.deleted_at IS NULL");
     expect(vault).toContain("WHERE workspace_id = ? ORDER BY created_at DESC");
     expect(vault).not.toMatch(/SELECT[^`]*encrypted_secret_json[^`]*FROM secrets/i);
   });
 
   it("retains server-side replay protection and atomic trusted-worker claiming", () => {
-    const integrity = source("api/_lib/integrity.ts");
-    const executor = source("api/_lib/executor.ts");
+    const integrity = source("server/_lib/integrity.ts");
+    const executor = source("server/_lib/executor.ts");
     expect(integrity).toContain("REPLAYED_REQUEST");
     expect(integrity).toContain("RATE_LIMITED");
     expect(executor).toContain("WHERE id = ? AND status = 'queued'");

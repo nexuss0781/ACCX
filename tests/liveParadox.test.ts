@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { withControlPlaneDb } from "../api/_lib/paradox.js";
-import { bootstrapControlPlane } from "../api/_lib/vault.js";
+import { withControlPlaneDb } from "../server/_lib/paradox.js";
+import { bootstrapControlPlane } from "../server/_lib/vault.js";
 
 describe.runIf(process.env.ACCX_LIVE_PARADOX_TEST === "true")("ACCX live Paradox control plane", () => {
   it("provisions and reads the encrypted cloud control plane", async () => {

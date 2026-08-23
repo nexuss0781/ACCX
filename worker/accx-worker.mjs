@@ -7,10 +7,10 @@ const workerKey = process.env.ACCX_WORKER_KEY || "";
 const workerId = process.env.ACCX_WORKER_ID || `accx-worker-${process.pid}`;
 if (!/^https:\/\//.test(baseUrl) || !workerKey) throw new Error("ACCX_CONTROL_PLANE_URL (HTTPS) and ACCX_WORKER_KEY are required.");
 
-const response = await fetch(`${baseUrl}/api/v1/internal/dispatch`, {
+const response = await fetch(`${baseUrl}/api/v1/worker`, {
   method: "POST",
   headers: { "content-type": "application/json", "x-accx-worker-key": workerKey },
-  body: JSON.stringify({ workerId, limit: 1 }),
+  body: JSON.stringify({ command: "dispatch_jobs", workerId, limit: 1 }),
   signal: AbortSignal.timeout(55_000),
 });
 if (!response.ok) throw new Error(`ACCX worker dispatch failed with HTTP ${response.status}.`);

@@ -22,14 +22,14 @@ class AccxClient:
         self._retry_base_seconds = min(max(retry_base_seconds, 0.05), 5.0)
 
     def submit_action(self, job: JobSubmission) -> SanitizedJobResult:
-        return self._request("POST", "/api/v1/jobs", job.as_wire())
+        return self._request("POST", "/api/v1/workloads", {"command": "submit_job", **job.as_wire()})
 
     def get_job_status(self, job_id: str) -> SanitizedJobResult:
-        return self._request("GET", f"/api/v1/jobs/status?jobId={job_id}")
+        return self._request("GET", f"/api/v1/workloads?command=job_status&jobId={job_id}")
 
     def get_secret_metadata(self, reference: str) -> SecretMetadata:
         request = Request(
-            f"{self._base_url}/api/v1/metadata/secrets",
+            f"{self._base_url}/api/v1/workloads?command=list_secret_metadata",
             method="GET",
             headers={"X-ACCX-Workload-Token": self._workload_token},
         )

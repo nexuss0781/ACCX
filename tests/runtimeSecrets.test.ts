@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { GatewayClient } from "parad";
-import { serverEnv } from "../api/_lib/env.js";
+import { serverEnv } from "../server/_lib/env.js";
 
 const managedIt = process.env.ACCX_MANAGED_SECRETS_TEST === "true" ? it : it.skip;
 const networkIt = process.env.ACCX_NETWORK_TEST === "true" ? it : it.skip;

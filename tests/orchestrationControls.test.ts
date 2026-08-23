@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { actionExecutionPolicy, requiredScopesForAction } from "../api/_lib/orchestrator.js";
+import { actionExecutionPolicy, requiredScopesForAction } from "../server/_lib/orchestrator.js";
 
 const source = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 
@@ -14,22 +14,22 @@ describe("ACCX orchestration controls", () => {
   });
 
   it("creates approval state before high-impact publishing jobs can reach workers", () => {
-    const sourceCode = source("api/_lib/orchestrator.ts");
+    const sourceCode = source("server/_lib/orchestrator.ts");
     expect(sourceCode).toContain("status = executionPolicy.approvalRequired ? \"awaiting_approval\" : \"queued\"");
     expect(sourceCode).toContain("INSERT INTO job_approvals");
     expect(sourceCode).toContain("? \"job.approval_requested\" : \"job.submitted\"");
-    expect(source("api/v1/internal/dispatch.ts")).toContain("WHERE status = 'queued'");
+    expect(source("server/v1/internal/dispatch.ts")).toContain("WHERE status = 'queued'");
   });
 
   it("requires step-up authorization and mutation integrity before approval resolution", () => {
-    const route = source("api/v1/app/jobs/approval.ts");
+    const route = source("server/v1/app/jobs/approval.ts");
     expect(route).toContain("requireStepUp(db, req)");
     expect(route).toContain("assertFreshMutation");
     expect(route).toContain("resolveJobApproval");
   });
 
   it("passes a cancellation signal to providers and never writes raw provider results to audits", () => {
-    const executor = source("api/_lib/executor.ts");
+    const executor = source("server/_lib/executor.ts");
     expect(executor).toContain("new AbortController()");
     expect(executor).toContain("signal: controller.signal");
     expect(executor).toContain("PROVIDER_TIMEOUT");
@@ -39,7 +39,7 @@ describe("ACCX orchestration controls", () => {
   });
 
   it("requires HTTPS and server-owned egress allowlists for reusable HTTP provider adapters", () => {
-    const adapter = source("api/_lib/providerAdapter.ts");
+    const adapter = source("server/_lib/providerAdapter.ts");
     expect(adapter).toContain("target.protocol !== \"https:\"");
     expect(adapter).toContain("origins.has(target.origin)");
     expect(adapter).toContain("redirect: \"error\"");

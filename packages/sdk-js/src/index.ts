@@ -65,16 +65,16 @@ export class AccxClient {
   }
 
   async submitAction(job: JobSubmission): Promise<SanitizedJobResult> {
-    const response = await this.request(`${this.baseUrl}/api/v1/jobs`, {
+    const response = await this.request(`${this.baseUrl}/api/v1/workloads`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-ACCX-Workload-Token": this.workloadToken },
-      body: JSON.stringify(jobSubmissionSchema.parse(job)),
+      body: JSON.stringify({ command: "submit_job", ...jobSubmissionSchema.parse(job) }),
     });
     return this.parseResponse(response);
   }
 
   async getJobStatus(jobId: string): Promise<SanitizedJobResult> {
-    const response = await this.request(`${this.baseUrl}/api/v1/jobs/status?jobId=${encodeURIComponent(jobId)}`, {
+    const response = await this.request(`${this.baseUrl}/api/v1/workloads?command=job_status&jobId=${encodeURIComponent(jobId)}`, {
       headers: { "X-ACCX-Workload-Token": this.workloadToken },
     });
     return this.parseResponse(response);
@@ -84,7 +84,7 @@ export class AccxClient {
     const maxAgeMs = Math.min(Math.max(options.maxAgeMs ?? 30_000, 0), 300_000);
     const cached = this.metadataCache.get(reference);
     if (cached && cached.expiresAt > Date.now()) return cached.value;
-    const response = await this.request(`${this.baseUrl}/api/v1/metadata/secrets`, { headers: { "X-ACCX-Workload-Token": this.workloadToken } });
+    const response = await this.request(`${this.baseUrl}/api/v1/workloads?command=list_secret_metadata`, { headers: { "X-ACCX-Workload-Token": this.workloadToken } });
     const payload = await response.json() as { secrets?: unknown };
     const secrets = Array.isArray(payload.secrets) ? payload.secrets.map(item => secretMetadataSchema.parse(item)) : [];
     for (const secret of secrets) this.metadataCache.set(secret.reference, { value: secret, expiresAt: Date.now() + maxAgeMs });

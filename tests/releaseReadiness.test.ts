@@ -6,11 +6,11 @@ const source = (path: string) => readFileSync(resolve(process.cwd(), path), "utf
 
 describe("ACCX release-readiness contract", () => {
   it("keeps authenticated metadata, session, and worker routes present", () => {
-    expect(source("api/v1/auth/session.ts")).toContain("sessionUser");
-    expect(source("api/v1/app/bootstrap.ts")).toContain("requireSession");
-    expect(source("api/v1/app/secrets.ts")).toContain("registerSecretMetadata");
-    expect(source("api/v1/internal/dispatch.ts")).toContain("authorizeWorker");
-    expect(source("api/v1/internal/execute.ts")).toContain("authorizeWorker");
+    expect(source("server/v1/auth/session.ts")).toContain("sessionUser");
+    expect(source("server/v1/app/bootstrap.ts")).toContain("requireSession");
+    expect(source("server/v1/app/secrets.ts")).toContain("registerSecretMetadata");
+    expect(source("server/v1/internal/dispatch.ts")).toContain("authorizeWorker");
+    expect(source("server/v1/internal/execute.ts")).toContain("authorizeWorker");
   });
 
   it("keeps release documentation explicit about non-public secret boundaries", () => {

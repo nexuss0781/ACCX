@@ -17,7 +17,7 @@ describe("ACCX metadata-only vault lifecycle", () => {
   });
 
   it("keeps portable bundles ciphertext-only and uses a recognized format marker", () => {
-    const vault = source("api/_lib/vault.ts");
+    const vault = source("server/_lib/vault.ts");
     expect(vault).toContain('format: "accx.encrypted-vault.v1"');
     expect(vault).toContain("encryptedDataKey");
     expect(vault).toContain("encryptedSecret");
@@ -25,17 +25,17 @@ describe("ACCX metadata-only vault lifecycle", () => {
   });
 
   it("requires a current step-up grant before soft deletion, purge, export, or import", () => {
-    const lifecycle = source("api/v1/app/secrets/lifecycle.ts");
-    const exportRoute = source("api/v1/app/vault/export.ts");
-    const importRoute = source("api/v1/app/vault/import.ts");
+    const lifecycle = source("server/v1/app/secrets/lifecycle.ts");
+    const exportRoute = source("server/v1/app/vault/export.ts");
+    const importRoute = source("server/v1/app/vault/import.ts");
     expect(lifecycle).toContain("requireStepUp(db, req)");
     expect(exportRoute).toContain("requireStepUp(db, req)");
     expect(importRoute).toContain("requireStepUp(db, req)");
-    expect(source("api/_lib/vault.ts")).toContain("purge_after");
+    expect(source("server/_lib/vault.ts")).toContain("purge_after");
   });
 
   it("revokes active leases when a secret is soft deleted", () => {
-    const vault = source("api/_lib/vault.ts");
+    const vault = source("server/_lib/vault.ts");
     expect(vault).toContain("eventType: \"secret.soft_deleted\"");
     expect(vault).toContain("UPDATE secret_leases SET revoked_at");
     expect(vault).toContain("eventType: \"secret.purged\"");

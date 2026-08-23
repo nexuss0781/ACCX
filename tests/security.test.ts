@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
-import { decryptSecret, encryptSecret, redactAuditMetadata } from "../api/_lib/security.js";
-import { executeQueuedJob } from "../api/_lib/executor.js";
-import { isLeaseActive, requiredScopesForAction } from "../api/_lib/orchestrator.js";
-import { assertScopes } from "../api/_lib/vault.js";
+import { decryptSecret, encryptSecret, redactAuditMetadata } from "../server/_lib/security.js";
+import { executeQueuedJob } from "../server/_lib/executor.js";
+import { isLeaseActive, requiredScopesForAction } from "../server/_lib/orchestrator.js";
+import { assertScopes } from "../server/_lib/vault.js";
 import { ZERO_PLAINTEXT_INVARIANT, jobSubmissionSchema } from "../shared/contracts.js";
 
 process.env.ACCX_VAULT_MASTER_KEY = Buffer.alloc(32, 7).toString("base64");

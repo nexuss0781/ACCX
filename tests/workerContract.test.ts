@@ -13,13 +13,13 @@ describe("dedicated worker deployment contract", () => {
     expect(worker).not.toContain("PARADOX_API_KEY");
     expect(worker).not.toContain("ACCX_ADMIN_KEY");
     expect(worker).not.toContain("ACCX_WORKLOAD_TOKEN");
-    expect(worker).toContain("/api/v1/internal/dispatch");
+    expect(worker).toContain("/api/v1/worker");
     expect(worker).not.toMatch(/console\.log\(.*workerKey/);
   });
 
   it("uses a server-side queue claim before attempting an adapter and documents one-shot deployment", () => {
-    const executor = source("api/_lib/executor.ts");
-    const dispatch = source("api/v1/internal/dispatch.ts");
+    const executor = source("server/_lib/executor.ts");
+    const dispatch = source("server/v1/internal/dispatch.ts");
     const guide = source("docs/worker-deployment.md");
     expect(executor).toContain("status = 'running', claimed_by");
     expect(executor).toContain("status = 'queued'");

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { hashPassword, verifyPassword } from "../api/_lib/auth.js";
+import { hashPassword, verifyPassword } from "../server/_lib/auth.js";
 
 const source = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 
@@ -25,7 +25,7 @@ describe("frontend metadata-only boundary", () => {
   it("keeps metadata management and emergency controls reference-only and step-up protected", () => {
     const accounts = source("src/pages/AccountsPage.tsx");
     const client = source("src/lib/accxApi.ts");
-    const lifecycle = source("api/v1/app/secrets/lifecycle.ts");
+    const lifecycle = source("server/v1/app/secrets/lifecycle.ts");
     expect(accounts).toContain("Protected field type");
     expect(accounts).toContain("Revoke and invalidate leases");
     expect(accounts).not.toContain("password:");

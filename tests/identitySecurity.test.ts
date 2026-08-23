@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { totpCode } from "../api/_lib/auth.js";
+import { totpCode } from "../server/_lib/auth.js";
 
 const source = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 
@@ -12,7 +12,7 @@ describe("ACCX identity and step-up security", () => {
   });
 
   it("keeps session cookies HttpOnly, secure, same-site, and bounded", () => {
-    const auth = source("api/_lib/auth.ts");
+    const auth = source("server/_lib/auth.ts");
     expect(auth).toContain("HttpOnly; Secure; SameSite=Lax");
     expect(auth).toContain("const sessionDays = 7");
     expect(auth).toContain("rotateCurrentSession");
@@ -20,8 +20,8 @@ describe("ACCX identity and step-up security", () => {
   });
 
   it("stores MFA material encrypted and never returns the TOTP seed or recovery hashes", () => {
-    const auth = source("api/_lib/auth.ts");
-    const schema = source("api/_lib/schema.ts");
+    const auth = source("server/_lib/auth.ts");
+    const schema = source("server/_lib/schema.ts");
     expect(auth).toContain("encryptSecret(secret)");
     expect(auth).toContain("decryptSecret(encryptedPayload(factor))");
     expect(auth).not.toContain("totpSecret:");
@@ -30,7 +30,7 @@ describe("ACCX identity and step-up security", () => {
   });
 
   it("requires an origin-bound, one-time WebAuthn challenge and advances credential counters", () => {
-    const webauthn = source("api/_lib/webauthn.ts");
+    const webauthn = source("server/_lib/webauthn.ts");
     expect(webauthn).toContain("const parsed = new URL(raw)");
     expect(webauthn).toContain("expectedOrigin: origin");
     expect(webauthn).toContain("consumed_at = ?");
@@ -39,7 +39,7 @@ describe("ACCX identity and step-up security", () => {
   });
 
   it("gates recovery-code issuance behind a current step-up authorization", () => {
-    const auth = source("api/_lib/auth.ts");
+    const auth = source("server/_lib/auth.ts");
     expect(auth).toContain("const user = requireStepUp(db, req);");
     expect(auth).toContain("step_up_until");
     expect(auth).toContain("step_up_method");

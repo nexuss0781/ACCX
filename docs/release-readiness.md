@@ -20,7 +20,7 @@ The deterministic suite includes encryption, RBAC, lease, audit-redaction, SDK-s
 
 The Vercel project must contain the server-only values already documented by the environment accessor, including `ACCX_VAULT_MASTER_KEY`, `ACCX_ADMIN_KEY`, `ACCX_WORKER_KEY`, `PARADOX_PASSPHRASE`, `PARADOX_API_KEY`, `PARADOX_GATEWAY_URL`, and `PARADOX_RESOLVER_URL`. These values must never be placed in `VITE_*` variables, committed files, SDK responses, URLs, browser storage, or logs.
 
-The internal routes under `/api/v1/internal/*` are not browser APIs. They require the worker key and should be reachable only by the private worker runtime and controlled operational tooling. The worker runtime receives only its HTTPS control-plane origin, worker key, and audit identifier as described in [worker-deployment.md](./worker-deployment.md).
+The consolidated `/api/v1/worker` endpoint is not a browser API. Its `dispatch_jobs` and `execute_job` subcommands require the worker key and should be reachable only by the private worker runtime and controlled operational tooling. The consolidated `/api/v1/admin` endpoint is also server-to-server and requires the administrator key. The worker runtime receives only its HTTPS control-plane origin, worker key, and audit identifier as described in [worker-deployment.md](./worker-deployment.md).
 
 ## Package release boundary
 
@@ -33,7 +33,7 @@ Publishing remains a separate human-controlled action. Version 0.1.0 of the Java
 | Area | Required state |
 |---|---|
 | Browser | No account password field, secret reveal control, secret clipboard path, or credential persistence remains. |
-| API | Session routes issue and revoke HttpOnly cookies; metadata routes require a session; administrative and worker keys remain server-only. |
+| API | Consolidated auth, app, admin, workloads, and worker handlers preserve their original session, step-up, workload-token, admin-key, and worker-key boundaries. |
 | Database | Schema initialization is idempotent, version conflicts are rejected, and queued jobs are atomically claimed before execution. |
 | Worker | The one-shot worker uses HTTPS, a dedicated worker key, a stable worker identifier, a bounded request timeout, and sanitized logging. |
 | SDKs | `pnpm run check:sdk` passes and both SDK surfaces remain reference-only. |

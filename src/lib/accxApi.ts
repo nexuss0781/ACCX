@@ -12,15 +12,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return payload as T;
 }
 export const accxApi = {
-  session: () => request<{ user: AppBootstrap['user'] | null }>('/api/v1/auth/session'),
-  login: (email: string, password: string) => request<{ user: AppBootstrap['user'] }>('/api/v1/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
-  register: (name: string, email: string, password: string) => request<{ user: AppBootstrap['user'] }>('/api/v1/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password }) }),
-  logout: () => request<{ ok: boolean }>('/api/v1/auth/logout', { method: 'POST' }),
-  bootstrap: () => request<AppBootstrap>('/api/v1/app/bootstrap'),
-  createMetadata: (input: { environmentId: string; provider: string; displayName: string; reference: string; fieldKind: CloudSecret['fieldKind']; tags: string[]; aliases: string[] }) => request<{ secret: CloudSecret }>('/api/v1/app/secrets', { method: 'POST', body: JSON.stringify(input) }),
-  updateMetadata: (input: { secretId: string; tags: string[]; aliases: string[]; healthStatus: CloudSecret['healthStatus']; expiresAt: string | null }) => request<{ updated: boolean }>('/api/v1/app/secrets/lifecycle', { method: 'POST', body: JSON.stringify({ operation: 'metadata', ...input }) }),
-  stepUpTotp: (code: string) => request<{ verified: boolean }>('/api/v1/auth/step-up', { method: 'POST', body: JSON.stringify({ method: 'totp', code }) }),
-  revokeMetadata: (secretId: string, reason: string) => request<{ revoked: boolean }>('/api/v1/app/secrets/lifecycle', { method: 'POST', body: JSON.stringify({ operation: 'revoke', secretId, reason }) }),
-  exportVault: (workspaceId: string) => request<{ bundle: unknown }>('/api/v1/app/vault/export', { method: 'POST', body: JSON.stringify({ workspaceId }) }),
-  importVault: (workspaceId: string, bundle: unknown) => request<{ imported: number }>('/api/v1/app/vault/import', { method: 'POST', body: JSON.stringify({ workspaceId, bundle }) }),
+  session: () => request<{ user: AppBootstrap['user'] | null }>('/api/v1/auth?command=session'),
+  login: (email: string, password: string) => request<{ user: AppBootstrap['user'] }>('/api/v1/auth', { method: 'POST', body: JSON.stringify({ command: 'login', email, password }) }),
+  register: (name: string, email: string, password: string) => request<{ user: AppBootstrap['user'] }>('/api/v1/auth', { method: 'POST', body: JSON.stringify({ command: 'register', name, email, password }) }),
+  logout: () => request<{ ok: boolean }>('/api/v1/auth', { method: 'POST', body: JSON.stringify({ command: 'logout' }) }),
+  bootstrap: () => request<AppBootstrap>('/api/v1/app?command=bootstrap'),
+  createMetadata: (input: { environmentId: string; provider: string; displayName: string; reference: string; fieldKind: CloudSecret['fieldKind']; tags: string[]; aliases: string[] }) => request<{ secret: CloudSecret }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'create_secret_metadata', ...input }) }),
+  updateMetadata: (input: { secretId: string; tags: string[]; aliases: string[]; healthStatus: CloudSecret['healthStatus']; expiresAt: string | null }) => request<{ updated: boolean }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'update_secret_metadata', operation: 'metadata', ...input }) }),
+  stepUpTotp: (code: string) => request<{ verified: boolean }>('/api/v1/auth', { method: 'POST', body: JSON.stringify({ command: 'step_up', method: 'totp', code }) }),
+  revokeMetadata: (secretId: string, reason: string) => request<{ revoked: boolean }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'revoke_secret', operation: 'revoke', secretId, reason }) }),
+  exportVault: (workspaceId: string) => request<{ bundle: unknown }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'export_vault', workspaceId }) }),
+  importVault: (workspaceId: string, bundle: unknown) => request<{ imported: number }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'import_vault', workspaceId, bundle }) }),
 };

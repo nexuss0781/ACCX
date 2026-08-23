@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { assertFreshMutation, assertSameOrigin } from "../api/_lib/integrity.js";
+import { assertFreshMutation, assertSameOrigin } from "../server/_lib/integrity.js";
 
 const source = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 const request = (headers: Record<string, string>) => ({ headers }) as never;
