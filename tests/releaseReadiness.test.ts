@@ -17,7 +17,7 @@ describe("ACCX release-readiness contract", () => {
     const guide = source("docs/release-readiness.md");
     expect(guide).toContain("server-only");
     expect(guide).toContain("never be placed in `VITE_*`");
-    expect(guide).toContain("does not publish to npm or PyPI");
+    expect(guide).toContain("Publishing remains a separate human-controlled action");
     expect(source("packages/sdk-js/package.json")).toContain("publishConfig");
     expect(source("packages/sdk-python/pyproject.toml")).toContain("readme = \"README.md\"");
   });

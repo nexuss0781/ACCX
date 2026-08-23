@@ -69,7 +69,7 @@ function FolderForm({ folder, onClose }: { folder?: FolderType; onClose: () => v
 }
 
 export default function FoldersPage() {
-  const { folders, deleteFolder, accounts, notes } = useStore();
+  const { folders, deleteFolder, accounts } = useStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingFolder, setEditingFolder] = useState<FolderType | null>(null);

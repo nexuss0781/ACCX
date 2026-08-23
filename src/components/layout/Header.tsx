@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Search, Bell, X } from 'lucide-react';
-import { useStore } from '../../store';
 import ThemeToggle from '../ui/ThemeToggle';
 
 interface HeaderProps {
@@ -14,8 +13,6 @@ interface HeaderProps {
 export default function Header({ title, subtitle, onSearch, searchPlaceholder = 'Search...', children }: HeaderProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { sidebarCollapsed } = useStore();
-
   const handleSearch = (value: string) => {
     setSearchQuery(value);
     onSearch?.(value);

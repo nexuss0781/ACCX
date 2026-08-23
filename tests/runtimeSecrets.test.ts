@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 import { GatewayClient } from "parad";
 import { serverEnv } from "../api/_lib/env.js";
 
+const managedIt = process.env.ACCX_MANAGED_SECRETS_TEST === "true" ? it : it.skip;
 const networkIt = process.env.ACCX_NETWORK_TEST === "true" ? it : it.skip;
 
 describe("ACCX managed server secrets", () => {
-  it("loads a valid server-only vault key, operator key, Paradox passphrase, and gateway configuration", () => {
+  managedIt("loads a valid server-only vault key, operator key, Paradox passphrase, and gateway configuration", () => {
     expect(Buffer.from(serverEnv.vaultMasterKey(), "base64")).toHaveLength(32);
     expect(serverEnv.adminKey().length).toBeGreaterThanOrEqual(32);
     expect(serverEnv.workerKey().length).toBeGreaterThanOrEqual(32);

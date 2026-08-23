@@ -14,7 +14,7 @@ pnpm run build
 node --check worker/accx-worker.mjs
 ```
 
-The deterministic suite includes encryption, RBAC, lease, audit-redaction, SDK-surface, frontend-boundary, worker-contract, and managed-secret configuration checks. The gateway probe is run with `pnpm test:network`, and the opt-in live Paradox control-plane test is run with `ACCX_LIVE_PARADOX_TEST=true`; both must execute only in a secure server environment.
+The deterministic suite includes encryption, RBAC, lease, audit-redaction, SDK-surface, frontend-boundary, and worker-contract checks. Managed-secret configuration validation is run with `ACCX_MANAGED_SECRETS_TEST=true pnpm test` in a protected environment. The gateway probe is run with `pnpm test:network`, and the opt-in live Paradox control-plane test is run with `ACCX_LIVE_PARADOX_TEST=true`; all environment-dependent checks must execute only in a secure server environment.
 
 ## Vercel configuration
 
