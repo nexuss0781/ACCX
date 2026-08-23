@@ -1,5 +1,5 @@
 {
-  "name": "accx",
+  "name": "accx-console",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,27 +7,37 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:network": "ACCX_NETWORK_TEST=true vitest run tests/runtimeSecrets.test.ts",
+    "test:live-paradox": "ACCX_LIVE_PARADOX_TEST=true vitest run tests/liveParadox.test.ts",
+    "check:api": "tsc -p tsconfig.api.json",
+    "check:sdk": "tsc -p tsconfig.sdk.json"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "^13.3.0",
+    "@simplewebauthn/server": "^13.3.2",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.511.0",
+    "parad": "^2.2.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router-dom": "^7.6.1",
-    "zustand": "^5.0.5",
+    "react-router-dom": "^7.18.2",
     "recharts": "^2.15.3",
-    "lucide-react": "^0.511.0",
-    "clsx": "^2.1.1",
-    "date-fns": "^4.1.0"
+    "zod": "^4.4.3",
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.1.8",
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
-    "@tailwindcss/vite": "^4.1.8",
-    "tailwindcss": "^4.1.8",
     "oxlint": "^1.71.0",
+    "tailwindcss": "^4.1.8",
     "typescript": "~6.0.2",
-    "vite": "^8.1.1"
+    "vite": "^8.1.1",
+    "vitest": "^4.1.10"
   }
 }

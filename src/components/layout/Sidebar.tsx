@@ -6,6 +6,7 @@ import {
   ChevronLeft, ChevronRight, LogOut, Settings, Shield
 } from 'lucide-react';
 import { cn } from '../../utils';
+import { accxApi } from '../../lib/accxApi';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -19,6 +20,7 @@ export default function Sidebar() {
   const { sidebarCollapsed, toggleSidebar, logout, user } = useStore();
   const location = useLocation();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const signOut = async () => { try { await accxApi.logout(); } finally { logout(); } };
 
   return (
     <aside
@@ -109,7 +111,7 @@ export default function Sidebar() {
           {!sidebarCollapsed && <span className="text-sm">Settings</span>}
         </button>
         <button
-          onClick={logout}
+          onClick={() => void signOut()}
           className={cn(
             'flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-danger-theme hover:bg-danger-subtle transition-colors',
             sidebarCollapsed && 'justify-center px-0'

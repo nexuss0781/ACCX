@@ -1,342 +1,75 @@
-import { useState, useMemo } from 'react';
-import { useStore } from '../store';
+import { useEffect, useMemo, useState } from 'react';
 import Header from '../components/layout/Header';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Modal from '../components/ui/Modal';
 import Badge from '../components/ui/Badge';
-import ConfirmDialog from '../components/ui/ConfirmDialog';
 import EmptyState from '../components/ui/EmptyState';
-import { Plus, KeyRound, Star, Eye, EyeOff, Copy, Edit3, Trash2, ExternalLink, MoreVertical, X, Globe, Search, Filter } from 'lucide-react';
-import { timeAgo, maskPassword, cn } from '../utils';
-import type { Account, CustomField } from '../types';
+import { Plus, KeyRound, Star, Globe, Filter, ShieldCheck, RefreshCw, Settings2, Tag, Archive } from 'lucide-react';
+import { timeAgo, cn } from '../utils';
+import { useStore } from '../store';
+import type { Account } from '../types';
+import { accxApi, type CloudAuditEvent, type Environment } from '../lib/accxApi';
 
-function AccountCard({ account, onEdit, onDelete, onToggleFavorite }: {
-  account: Account;
-  onEdit: () => void;
-  onDelete: () => void;
-  onToggleFavorite: () => void;
-}) {
-  const [showPassword, setShowPassword] = useState(false);
-  const [copied, setCopied] = useState<string | null>(null);
+function AccountCard({ account, onToggleFavorite, onManage }: { account: Account; onToggleFavorite: () => void; onManage: () => void }) {
   const { categories, folders } = useStore();
-
   const category = categories.find(c => c.id === account.categoryId);
   const folder = folders.find(f => f.id === account.folderId);
-
-  const copyToClipboard = (text: string, field: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(field);
-    setTimeout(() => setCopied(null), 1500);
-  };
-
   return (
     <div className="bg-bg-surface rounded-2xl border border-border-theme p-5 card-hover group animate-fade-in">
       <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: category?.color || '#6366f1' }}>
-            {account.title.charAt(0)}
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-text-primary">{account.title}</h3>
-            <p className="text-xs text-text-muted">{account.username || account.email || '—'}</p>
-          </div>
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm bg-accent">{account.title.charAt(0)}</div>
+          <div className="min-w-0"><h3 className="text-sm font-semibold text-text-primary truncate">{account.title}</h3><p className="text-xs text-text-muted truncate">{account.provider || 'Cloud account'}</p></div>
         </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={onToggleFavorite} className="p-1.5 rounded-lg hover:bg-bg-raised transition-colors">
-            <Star className={cn('w-4 h-4', account.favorite ? 'text-amber-400 fill-amber-400' : 'text-text-muted')} />
-          </button>
-          <button onClick={onEdit} className="p-1.5 rounded-lg hover:bg-bg-raised transition-colors text-text-muted hover:text-accent">
-            <Edit3 className="w-4 h-4" />
-          </button>
-          <button onClick={onDelete} className="p-1.5 rounded-lg hover:bg-bg-raised transition-colors text-text-muted hover:text-danger-theme">
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
+        <button onClick={onToggleFavorite} className="p-1.5 rounded-lg hover:bg-bg-raised transition-colors"><Star className={cn('w-4 h-4', account.favorite ? 'text-amber-400 fill-amber-400' : 'text-text-muted')} /></button>
       </div>
-
-      {account.description && (
-        <p className="text-xs text-text-secondary mb-3 line-clamp-2">{account.description}</p>
-      )}
-
-      <div className="space-y-2 mb-3">
-        {account.email && (
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-text-muted w-16 shrink-0">Email</span>
-            <span className="text-text-secondary truncate flex-1">{account.email}</span>
-            <button onClick={() => copyToClipboard(account.email!, 'email')} className="p-1 rounded hover:bg-bg-raised transition-colors shrink-0">
-              <Copy className={cn('w-3 h-3', copied === 'email' ? 'text-emerald-500' : 'text-text-muted')} />
-            </button>
-          </div>
-        )}
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-text-muted w-16 shrink-0">Password</span>
-          <span className="text-text-secondary font-mono flex-1 truncate">{showPassword ? account.password : maskPassword(account.password)}</span>
-          <button onClick={() => setShowPassword(!showPassword)} className="p-1 rounded hover:bg-bg-raised transition-colors shrink-0">
-            {showPassword ? <EyeOff className="w-3 h-3 text-text-muted" /> : <Eye className="w-3 h-3 text-text-muted" />}
-          </button>
-          <button onClick={() => copyToClipboard(account.password, 'password')} className="p-1 rounded hover:bg-bg-raised transition-colors shrink-0">
-            <Copy className={cn('w-3 h-3', copied === 'password' ? 'text-emerald-500' : 'text-text-muted')} />
-          </button>
-        </div>
+      <div className="space-y-2 mb-3 text-xs">
+        <div className="flex gap-2 items-center"><ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /><span className="text-text-secondary">Protected in ACCX Cloud</span></div>
+        <div className="flex gap-2"><span className="text-text-muted w-16 shrink-0">Reference</span><code className="text-text-secondary truncate flex-1">{account.reference}</code></div>
+        <div className="flex gap-2"><span className="text-text-muted w-16 shrink-0">Version</span><span className="text-text-secondary">v{account.activeVersion || 0} · {account.rotationState || 'stable'}</span></div>
       </div>
-
-      {account.customFields.length > 0 && (
-        <div className="space-y-2 mb-3 pt-2 border-t border-border-subtle">
-          {account.customFields.map(cf => (
-            <div key={cf.id} className="flex items-center gap-2 text-xs">
-              <span className="text-text-muted w-16 shrink-0 truncate">{cf.label}</span>
-              <span className="text-text-secondary truncate flex-1">{cf.value}</span>
-              <button onClick={() => copyToClipboard(cf.value, cf.id)} className="p-1 rounded hover:bg-bg-raised transition-colors shrink-0">
-                <Copy className={cn('w-3 h-3', copied === cf.id ? 'text-emerald-500' : 'text-text-muted')} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
       <div className="flex items-center justify-between pt-3 border-t border-border-subtle">
-        <div className="flex items-center gap-1.5">
-          {category && <Badge color={category.color}>{category.name}</Badge>}
-          {folder && <Badge color={folder.color}>{folder.name}</Badge>}
-        </div>
-        <div className="flex items-center gap-2">
-          {account.url && (
-            <a href={account.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg hover:bg-bg-raised transition-colors text-text-muted hover:text-accent">
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          )}
-          <span className="text-[10px] text-text-muted">{timeAgo(account.updatedAt)}</span>
-        </div>
+        <div className="flex items-center gap-1.5"><Badge color={account.status === 'active' ? '#10b981' : account.status === 'revoked' ? '#ef4444' : '#f59e0b'}>{account.status || 'pending'}</Badge>{account.environment && <Badge color="#6366f1">{account.environment}</Badge>}{category && <Badge color={category.color}>{category.name}</Badge>}{folder && <Badge color={folder.color}>{folder.name}</Badge>}</div>
+        <div className="flex items-center gap-1"><span className="text-[10px] text-text-muted">{account.lastUsedAt ? `Used ${timeAgo(account.lastUsedAt)}` : 'No plaintext in browser'}</span><button onClick={onManage} className="p-1 rounded hover:bg-bg-raised text-text-muted" aria-label={`Manage ${account.title} metadata`}><Settings2 className="w-3.5 h-3.5" /></button></div>
       </div>
+      <div className="flex flex-wrap items-center gap-1.5 pt-3"><Badge color={account.healthStatus === 'healthy' ? '#10b981' : account.healthStatus === 'failed' ? '#ef4444' : '#f59e0b'}>{account.healthStatus || 'unknown'}</Badge><Badge color="#64748b">{account.fieldKind || 'custom'}</Badge>{(account.tags || []).slice(0, 3).map(tag => <span key={tag} className="inline-flex items-center gap-1 text-[10px] text-text-muted"><Tag className="w-3 h-3" />{tag}</span>)}</div>
     </div>
   );
 }
 
-function AccountForm({ account, onClose }: { account?: Account; onClose: () => void }) {
-  const { addAccount, updateAccount, categories, folders } = useStore();
-  const [title, setTitle] = useState(account?.title || '');
-  const [description, setDescription] = useState(account?.description || '');
-  const [username, setUsername] = useState(account?.username || '');
-  const [email, setEmail] = useState(account?.email || '');
-  const [password, setPassword] = useState(account?.password || '');
-  const [url, setUrl] = useState(account?.url || '');
-  const [categoryId, setCategoryId] = useState(account?.categoryId || '');
-  const [folderId, setFolderId] = useState(account?.folderId || '');
-  const [customFields, setCustomFields] = useState<CustomField[]>(account?.customFields || []);
-  const [notes, setNotes] = useState(account?.notes || '');
+function AccountForm({ environments, onClose, onCreated }: { environments: Environment[]; onClose: () => void; onCreated: () => void }) {
+  const [displayName, setDisplayName] = useState(''); const [provider, setProvider] = useState('twitter'); const [reference, setReference] = useState(''); const [environmentId, setEnvironmentId] = useState(environments[0]?.id || ''); const [fieldKind, setFieldKind] = useState<CloudSecret['fieldKind']>('api_token'); const [tags, setTags] = useState(''); const [aliases, setAliases] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(false);
+  const split = (value: string) => value.split(',').map(item => item.trim()).filter(Boolean);
+  const submit = async (event: React.FormEvent) => { event.preventDefault(); setError(''); setLoading(true); try { await accxApi.createMetadata({ displayName, provider, reference, environmentId, fieldKind, tags: split(tags), aliases: split(aliases) }); onCreated(); onClose(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Cloud metadata registration failed.'); } finally { setLoading(false); } };
+  return <form onSubmit={submit} className="space-y-4"><Input label="Display name" value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="e.g. Twitter primary" required /><Select label="Provider template" value={provider} onChange={e => setProvider(e.target.value)} options={['twitter','instagram','facebook','linkedin','tiktok','youtube','reddit','discord','slack','github','custom'].map(value => ({ value, label: value === 'custom' ? 'Custom provider' : value[0].toUpperCase() + value.slice(1) }))} /><Input label="Stable cloud reference" value={reference} onChange={e => setReference(e.target.value)} placeholder="social.twitter.primary" required /><Select label="Protected field type" value={fieldKind} onChange={e => setFieldKind(e.target.value as CloudSecret['fieldKind'])} options={['password','api_token','refresh_token','client_secret','recovery_code','cookie','ssh_key','custom'].map(value => ({ value, label: value.replace('_', ' ') }))} /><Input label="Tags" value={tags} onChange={e => setTags(e.target.value)} placeholder="production, publishing" /><Input label="Aliases" value={aliases} onChange={e => setAliases(e.target.value)} placeholder="social.twitter.token" /><Select label="Environment" value={environmentId} onChange={e => setEnvironmentId(e.target.value)} options={environments.map(env => ({ value: env.id, label: `${env.project_name} · ${env.label}` }))} required /><p className="text-xs text-text-muted">This registers metadata only. Credential values are provisioned through a trusted server workflow and are never entered, copied, or displayed in this browser.</p>{error && <p className="text-sm text-danger-theme">{error}</p>}<div className="flex justify-end gap-3 pt-2"><Button type="button" variant="secondary" onClick={onClose}>Cancel</Button><Button type="submit" loading={loading}>Register metadata</Button></div></form>;
+}
 
-  const addCustomField = () => {
-    setCustomFields([...customFields, { id: Date.now().toString(36), label: '', value: '', type: 'text' }]);
-  };
+function AccountMetadataForm({ account, audit, onClose, onSaved }: { account: Account; audit: CloudAuditEvent[]; onClose: () => void; onSaved: () => void }) {
+  const [tags, setTags] = useState((account.tags || []).join(', ')); const [aliases, setAliases] = useState((account.aliases || []).join(', ')); const [healthStatus, setHealthStatus] = useState<CloudSecret['healthStatus']>(account.healthStatus || 'unknown'); const [stepUpCode, setStepUpCode] = useState(''); const [stepUpReady, setStepUpReady] = useState(false); const [error, setError] = useState(''); const [loading, setLoading] = useState(false);
+  const split = (value: string) => value.split(',').map(item => item.trim()).filter(Boolean);
+  const submit = async (event: React.FormEvent) => { event.preventDefault(); setLoading(true); setError(''); try { await accxApi.updateMetadata({ secretId: account.id, tags: split(tags), aliases: split(aliases), healthStatus, expiresAt: account.expiresAt || null }); onSaved(); onClose(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Metadata update failed.'); } finally { setLoading(false); } };
+  const grantStepUp = async () => { setLoading(true); setError(''); try { await accxApi.stepUpTotp(stepUpCode); setStepUpReady(true); setStepUpCode(''); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Step-up verification failed.'); } finally { setLoading(false); } };
+  const emergencyRevoke = async () => { if (!stepUpReady || !window.confirm(`Revoke ${account.title}? Active leases will be invalidated immediately.`)) return; setLoading(true); setError(''); try { await accxApi.revokeMetadata(account.id, 'Emergency revocation requested from metadata console'); onSaved(); onClose(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Emergency revocation failed.'); } finally { setLoading(false); } };
+  const history = audit.filter(event => event.reference === account.reference).slice(0, 4);
+  return <form onSubmit={submit} className="space-y-4"><div className="rounded-xl bg-bg-raised p-3 text-xs text-text-secondary"><p><strong>Reference:</strong> {account.reference}</p><p className="mt-1"><strong>Rotation:</strong> {account.rotationState || 'stable'} · v{account.activeVersion || 0}</p><p className="mt-1 text-text-muted">Secret values are intentionally unavailable in this interface.</p></div><Input label="Tags" value={tags} onChange={e => setTags(e.target.value)} placeholder="production, publishing" /><Input label="Aliases" value={aliases} onChange={e => setAliases(e.target.value)} placeholder="social.twitter.token" /><Select label="Health state" value={healthStatus} onChange={e => setHealthStatus(e.target.value as CloudSecret['healthStatus'])} options={['unknown','healthy','attention','failed'].map(value => ({ value, label: value }))} /><div className="rounded-xl border border-border-theme p-3"><p className="text-xs font-semibold text-text-primary">Recent access history</p>{history.length ? <div className="mt-2 space-y-1">{history.map(event => <p key={event.id} className="text-xs text-text-muted">{event.eventType} · {timeAgo(event.createdAt)}</p>)}</div> : <p className="mt-1 text-xs text-text-muted">No sanitized activity is available for this reference.</p>}</div><div className="rounded-xl border border-danger-theme/20 p-3 space-y-2"><p className="text-xs font-semibold text-danger-theme">Emergency control</p><p className="text-xs text-text-muted">Verify your authenticator before revoking this reference. Revocation never reveals its credential value.</p><div className="flex gap-2"><Input label="TOTP code" value={stepUpCode} onChange={e => setStepUpCode(e.target.value)} placeholder="000000" /><Button type="button" variant="secondary" loading={loading} onClick={() => void grantStepUp()}>{stepUpReady ? 'Verified' : 'Verify'}</Button></div><Button type="button" variant="danger" disabled={!stepUpReady || loading} onClick={() => void emergencyRevoke()}>Revoke and invalidate leases</Button></div>{error && <p className="text-sm text-danger-theme">{error}</p>}<div className="flex justify-end gap-3"><Button type="button" variant="secondary" onClick={onClose}>Cancel</Button><Button type="submit" loading={loading}>Save metadata</Button></div></form>;
+}
 
-  const updateCustomField = (id: string, data: Partial<CustomField>) => {
-    setCustomFields(customFields.map(cf => cf.id === id ? { ...cf, ...data } : cf));
-  };
-
-  const removeCustomField = (id: string) => {
-    setCustomFields(customFields.filter(cf => cf.id !== id));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title || !password) return;
-    const data = { title, description, username, email, password, url, categoryId, folderId, customFields, notes };
-    if (account) {
-      updateAccount(account.id, data);
-    } else {
-      addAccount(data);
-    }
-    onClose();
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <Input label="Title" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. GitHub" required />
-        <Input label="URL" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..." icon={<Globe className="w-4 h-4" />} />
-      </div>
-      <Input label="Description" value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional description" />
-      <div className="grid grid-cols-2 gap-4">
-        <Input label="Username" value={username} onChange={e => setUsername(e.target.value)} placeholder="Username" />
-        <Input label="Email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" type="email" />
-      </div>
-      <Input label="Password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" type="password" required />
-      <div className="grid grid-cols-2 gap-4">
-        <Select
-          label="Category"
-          value={categoryId}
-          onChange={e => setCategoryId(e.target.value)}
-          options={categories.map(c => ({ value: c.id, label: c.name }))}
-          placeholder="Select category"
-        />
-        <Select
-          label="Folder"
-          value={folderId}
-          onChange={e => setFolderId(e.target.value)}
-          options={folders.map(f => ({ value: f.id, label: f.name }))}
-          placeholder="Select folder"
-        />
-      </div>
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-sm font-medium text-text-primary">Custom Fields</label>
-          <button type="button" onClick={addCustomField} className="flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover transition-colors">
-            <Plus className="w-3.5 h-3.5" /> Add Field
-          </button>
-        </div>
-        {customFields.length > 0 && (
-          <div className="space-y-2">
-            {customFields.map(cf => (
-              <div key={cf.id} className="flex items-center gap-2 animate-fade-in">
-                <Input value={cf.label} onChange={e => updateCustomField(cf.id, { label: e.target.value })} placeholder="Label" className="flex-1" />
-                <Input value={cf.value} onChange={e => updateCustomField(cf.id, { value: e.target.value })} placeholder="Value" className="flex-1" />
-                <Select
-                  value={cf.type}
-                  onChange={e => updateCustomField(cf.id, { type: e.target.value as CustomField['type'] })}
-                  options={[
-                    { value: 'text', label: 'Text' },
-                    { value: 'password', label: 'Password' },
-                    { value: 'url', label: 'URL' },
-                    { value: 'email', label: 'Email' },
-                    { value: 'number', label: 'Number' },
-                  ]}
-                  className="w-28"
-                />
-                <button type="button" onClick={() => removeCustomField(cf.id)} className="p-2 rounded-lg hover:bg-danger-subtle transition-colors text-text-muted hover:text-danger-theme shrink-0">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      <div>
-        <label className="text-sm font-medium text-text-primary block mb-1.5">Notes</label>
-        <textarea
-          value={notes}
-          onChange={e => setNotes(e.target.value)}
-          placeholder="Additional notes..."
-          rows={3}
-          className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-border-theme bg-bg-surface text-text-primary placeholder:text-text-muted transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
-        />
-      </div>
-      <div className="flex justify-end gap-3 pt-2">
-        <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-        <Button type="submit">{account ? 'Update Account' : 'Create Account'}</Button>
-      </div>
-    </form>
-  );
+function VaultOperations({ workspaceId, onClose, onImported }: { workspaceId: string; onClose: () => void; onImported: () => void }) {
+  const [code, setCode] = useState(''); const [verified, setVerified] = useState(false); const [file, setFile] = useState<File | null>(null); const [loading, setLoading] = useState(false); const [error, setError] = useState('');
+  const verify = async () => { setLoading(true); setError(''); try { await accxApi.stepUpTotp(code); setVerified(true); setCode(''); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Step-up verification failed.'); } finally { setLoading(false); } };
+  const exportBundle = async () => { if (!verified) return; setLoading(true); setError(''); try { const { bundle } = await accxApi.exportVault(workspaceId); const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = `accx-encrypted-vault-${new Date().toISOString().slice(0, 10)}.json`; anchor.click(); URL.revokeObjectURL(url); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Encrypted export failed.'); } finally { setLoading(false); } };
+  const importBundle = async () => { if (!verified || !file) return; setLoading(true); setError(''); try { const bundle = JSON.parse(await file.text()); await accxApi.importVault(workspaceId, bundle); onImported(); onClose(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Encrypted import failed.'); } finally { setLoading(false); } };
+  return <div className="space-y-4"><div className="rounded-xl bg-bg-raised p-3 text-xs text-text-secondary"><p className="font-semibold">Encrypted vault portability</p><p className="mt-1 text-text-muted">Exports contain encrypted version payloads and metadata only. ACCX never decrypts or displays a credential in this workflow.</p></div><div className="flex gap-2 items-end"><Input label="TOTP code" value={code} onChange={event => setCode(event.target.value)} placeholder="000000" /><Button type="button" variant="secondary" loading={loading} onClick={() => void verify()}>{verified ? 'Verified' : 'Verify step-up'}</Button></div><div className="grid grid-cols-1 md:grid-cols-2 gap-3"><div className="rounded-xl border border-border-theme p-3"><p className="text-sm font-medium">Encrypted export</p><p className="text-xs text-text-muted mt-1">Downloads only ciphertext and metadata.</p><Button type="button" className="mt-3" disabled={!verified || loading} onClick={() => void exportBundle()}>Download encrypted bundle</Button></div><div className="rounded-xl border border-border-theme p-3"><p className="text-sm font-medium">Encrypted import</p><p className="text-xs text-text-muted mt-1">Accepts ACCX ciphertext bundles for this workspace.</p><input type="file" accept="application/json" onChange={event => setFile(event.target.files?.[0] || null)} className="mt-3 text-xs" /><Button type="button" className="mt-3" disabled={!verified || !file || loading} onClick={() => void importBundle()}>Import encrypted bundle</Button></div></div>{error && <p className="text-sm text-danger-theme">{error}</p>}<div className="flex justify-end"><Button type="button" variant="secondary" onClick={onClose}>Close</Button></div></div>;
 }
 
 export default function AccountsPage() {
-  const { accounts, deleteAccount, toggleFavorite } = useStore();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterCategory, setFilterCategory] = useState('');
-  const [filterFolder, setFilterFolder] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
-  const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
-  const { categories, folders } = useStore();
-
-  const filtered = useMemo(() => {
-    return accounts.filter(acc => {
-      const matchesSearch = !searchQuery ||
-        acc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        acc.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        acc.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        acc.description?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = !filterCategory || acc.categoryId === filterCategory;
-      const matchesFolder = !filterFolder || acc.folderId === filterFolder;
-      return matchesSearch && matchesCategory && matchesFolder;
-    });
-  }, [accounts, searchQuery, filterCategory, filterFolder]);
-
+  const { accounts, setCloudAccounts, toggleFavorite, categories, folders } = useStore();
+  const [environments, setEnvironments] = useState<Environment[]>([]); const [workspaceId, setWorkspaceId] = useState(''); const [audit, setAudit] = useState<CloudAuditEvent[]>([]); const [searchQuery, setSearchQuery] = useState(''); const [filterCategory, setFilterCategory] = useState(''); const [filterFolder, setFilterFolder] = useState(''); const [showForm, setShowForm] = useState(false); const [showVault, setShowVault] = useState(false); const [selectedAccount, setSelectedAccount] = useState<Account | null>(null); const [loading, setLoading] = useState(true); const [error, setError] = useState('');
+  const load = async () => { setLoading(true); try { const cloud = await accxApi.bootstrap(); setWorkspaceId(cloud.workspaceId); setAudit(cloud.audit); setEnvironments(cloud.environments); setCloudAccounts(cloud.secrets.map(secret => ({ id: secret.id, title: secret.displayName, provider: secret.provider, reference: secret.reference, environment: secret.environment, status: secret.status, activeVersion: secret.activeVersion, rotationState: secret.rotationState, expiresAt: secret.expiresAt, lastUsedAt: secret.lastUsedAt, fieldKind: secret.fieldKind, tags: secret.tags, aliases: secret.aliases, healthStatus: secret.healthStatus, lastRotatedAt: secret.lastRotatedAt, favorite: false, createdAt: secret.lastUsedAt || new Date().toISOString(), updatedAt: secret.lastUsedAt || new Date().toISOString() }))); setError(''); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to load cloud metadata.'); } finally { setLoading(false); } };
+  useEffect(() => { void load(); }, []);
+  const filtered = useMemo(() => accounts.filter(account => (!searchQuery || [account.title, account.provider, account.reference, account.environment].filter(Boolean).some(value => String(value).toLowerCase().includes(searchQuery.toLowerCase()))) && (!filterCategory || account.categoryId === filterCategory) && (!filterFolder || account.folderId === filterFolder)), [accounts, searchQuery, filterCategory, filterFolder]);
   const hasFilters = searchQuery || filterCategory || filterFolder;
-
-  return (
-    <div>
-      <Header
-        title="Accounts"
-        subtitle={`${accounts.length} total accounts`}
-        onSearch={setSearchQuery}
-        searchPlaceholder="Search accounts..."
-      >
-        <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowForm(true)}>
-          New Account
-        </Button>
-      </Header>
-
-      <div className="flex items-center gap-3 mb-6 animate-fade-in">
-        <div className="relative">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-          <select
-            value={filterCategory}
-            onChange={e => setFilterCategory(e.target.value)}
-            className="pl-9 pr-8 py-2 text-sm rounded-xl border border-border-theme bg-bg-surface appearance-none focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
-          >
-            <option value="">All Categories</option>
-            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </div>
-        <div className="relative">
-          <select
-            value={filterFolder}
-            onChange={e => setFilterFolder(e.target.value)}
-            className="pl-3.5 pr-8 py-2 text-sm rounded-xl border border-border-theme bg-bg-surface appearance-none focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
-          >
-            <option value="">All Folders</option>
-            {folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-          </select>
-        </div>
-        {hasFilters && (
-          <button
-            onClick={() => { setSearchQuery(''); setFilterCategory(''); setFilterFolder(''); }}
-            className="text-xs font-medium text-accent hover:text-accent-hover transition-colors"
-          >
-            Clear filters
-          </button>
-        )}
-        <span className="text-xs text-text-muted ml-auto">{filtered.length} results</span>
-      </div>
-
-      {filtered.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(acc => (
-            <AccountCard
-              key={acc.id}
-              account={acc}
-              onEdit={() => setEditingAccount(acc)}
-              onDelete={() => setDeletingAccount(acc)}
-              onToggleFavorite={() => toggleFavorite(acc.id)}
-            />
-          ))}
-        </div>
-      ) : (
-        <EmptyState
-          icon={<KeyRound className="w-7 h-7" />}
-          title={hasFilters ? 'No matching accounts' : 'No accounts yet'}
-          description={hasFilters ? 'Try adjusting your search or filters' : 'Create your first account to get started'}
-          action={!hasFilters ? <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowForm(true)}>New Account</Button> : undefined}
-        />
-      )}
-
-      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title="New Account" size="lg">
-        <AccountForm onClose={() => setShowForm(false)} />
-      </Modal>
-
-      <Modal isOpen={!!editingAccount} onClose={() => setEditingAccount(null)} title="Edit Account" size="lg">
-        {editingAccount && <AccountForm account={editingAccount} onClose={() => setEditingAccount(null)} />}
-      </Modal>
-
-      <ConfirmDialog
-        isOpen={!!deletingAccount}
-        onClose={() => setDeletingAccount(null)}
-        onConfirm={() => { if (deletingAccount) { deleteAccount(deletingAccount.id); setDeletingAccount(null); } }}
-        title="Delete Account"
-        message={`Are you sure you want to delete "${deletingAccount?.title}"? This action cannot be undone.`}
-      />
-    </div>
-  );
+  return <div><Header title="Accounts" subtitle={`${accounts.length} cloud account references`} onSearch={setSearchQuery} searchPlaceholder="Search cloud references..."><div className="flex gap-2"><Button variant="secondary" icon={<Archive className="w-4 h-4" />} onClick={() => setShowVault(true)}>Vault operations</Button><Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowForm(true)}>New Account</Button></div></Header><div className="flex items-center gap-3 mb-6 animate-fade-in"><div className="relative"><Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" /><select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="pl-9 pr-8 py-2 text-sm rounded-xl border border-border-theme bg-bg-surface appearance-none focus:outline-none"><option value="">All Categories</option>{categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div className="relative"><select value={filterFolder} onChange={e => setFilterFolder(e.target.value)} className="pl-3.5 pr-8 py-2 text-sm rounded-xl border border-border-theme bg-bg-surface appearance-none focus:outline-none"><option value="">All Folders</option>{folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select></div>{hasFilters && <button onClick={() => { setSearchQuery(''); setFilterCategory(''); setFilterFolder(''); }} className="text-xs font-medium text-accent">Clear filters</button>}<button onClick={() => void load()} className="ml-auto p-2 rounded-lg hover:bg-bg-raised text-text-muted" aria-label="Refresh cloud metadata"><RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} /></button><span className="text-xs text-text-muted">{filtered.length} results</span></div>{error && <div className="mb-4 text-sm text-danger-theme">{error}</div>}{loading ? <div className="text-sm text-text-muted">Loading protected cloud metadata…</div> : filtered.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{filtered.map(account => <AccountCard key={account.id} account={account} onToggleFavorite={() => toggleFavorite(account.id)} onManage={() => setSelectedAccount(account)} />)}</div> : <EmptyState icon={<KeyRound className="w-7 h-7" />} title={hasFilters ? 'No matching cloud references' : 'No cloud account references yet'} description={hasFilters ? 'Try adjusting your search or filters' : 'Register metadata for the first protected cloud account'} action={!hasFilters ? <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowForm(true)}>New Account</Button> : undefined} />}<Modal isOpen={showForm} onClose={() => setShowForm(false)} title="Register cloud account metadata" size="lg"><AccountForm environments={environments} onClose={() => setShowForm(false)} onCreated={() => void load()} /></Modal><Modal isOpen={showVault} onClose={() => setShowVault(false)} title="Encrypted vault operations" size="lg">{workspaceId && <VaultOperations workspaceId={workspaceId} onClose={() => setShowVault(false)} onImported={() => void load()} />}</Modal><Modal isOpen={Boolean(selectedAccount)} onClose={() => setSelectedAccount(null)} title="Manage cloud account metadata" size="lg">{selectedAccount && <AccountMetadataForm account={selectedAccount} audit={audit} onClose={() => setSelectedAccount(null)} onSaved={() => void load()} />}</Modal></div>;
 }
