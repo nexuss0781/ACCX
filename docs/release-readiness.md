@@ -1,16 +1,16 @@
 # ACCX Release Readiness
 
-ACCX is released as one Vercel project containing the React control-plane interface and serverless API routes. The release boundary is metadata-only in the browser: the frontend can authenticate a user, register a stable reference, list sanitized metadata, and view sanitized audit events, but it cannot resolve or copy a credential value.
+ACCX is intended to be released as one Vercel project containing the React control-plane interface and serverless API routes. The release boundary is metadata-only in the browser: the frontend can authenticate a user, register a stable reference, list sanitized metadata, and view sanitized audit events, but it cannot resolve or copy a credential value.
 
 ## Verification sequence
 
 Run the following commands from the repository root before a release candidate is created:
 
 ```bash
-npm run check:api
-npm run check:sdk
-npm test
-npm run build
+pnpm run check:api
+pnpm run check:sdk
+pnpm test
+pnpm run build
 node --check worker/accx-worker.mjs
 ```
 
@@ -26,7 +26,7 @@ The internal routes under `/api/v1/internal/*` are not browser APIs. They requir
 
 The npm and PyPI SDKs accept stable secret references and return sanitized orchestration results. They do not expose plaintext-resolution methods. Before publishing either package, build the artifact in an isolated directory and inspect its file list; the artifact must contain source contracts, client code, and documentation only, never `.env` files, managed credentials, encrypted database snapshots, or runtime logs.
 
-Publishing is intentionally a separate human-controlled action. This repository phase prepares and verifies the artifacts but does not publish to npm or PyPI.
+Publishing remains a separate human-controlled action. Version 0.1.0 of the JavaScript and Python SDKs is already published; subsequent releases must use the protected manual workflow and the verification sequence above.
 
 ## Handoff checklist
 
@@ -36,7 +36,7 @@ Publishing is intentionally a separate human-controlled action. This repository 
 | API | Session routes issue and revoke HttpOnly cookies; metadata routes require a session; administrative and worker keys remain server-only. |
 | Database | Schema initialization is idempotent, version conflicts are rejected, and queued jobs are atomically claimed before execution. |
 | Worker | The one-shot worker uses HTTPS, a dedicated worker key, a stable worker identifier, a bounded request timeout, and sanitized logging. |
-| SDKs | `npm run check:sdk` passes and both SDK surfaces remain reference-only. |
+| SDKs | `pnpm run check:sdk` passes and both SDK surfaces remain reference-only. |
 | Operations | Worker key rotation and incident response follow the dedicated worker guide. |
 
 Any failed item blocks release until the failure is understood and recorded in `docs/error-cycles.md`.

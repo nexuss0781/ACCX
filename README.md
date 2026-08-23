@@ -24,17 +24,18 @@ ACCX is a full-featured account management system designed for individuals who w
 ## Features
 
 ### Authentication
-- Secure login and registration flow
-- Persistent sessions via Zustand + localStorage
+- Server-side registration and login with scrypt password hashing
+- HttpOnly, Secure, SameSite session cookies with bounded lifetimes
+- Session inventory, revocation, rotation, MFA, passkeys, recovery codes, and step-up authorization
 - Protected routes with automatic redirects
 
-### Accounts Vault
-- **Full CRUD** — create, read, update, and delete accounts
-- Card-based layout with category and folder badges
-- Password reveal, copy-to-clipboard, and masked display
-- **Custom fields** — add unlimited key-value fields via the `+` icon (text, password, URL, email, number types)
-- Favorite accounts with quick-access from the dashboard
-- External link to the account's website
+### Cloud Accounts Vault
+- Metadata-only account references backed by the ACCX server API
+- Provider, environment, version, rotation, health, tag, alias, and audit metadata
+- Encrypted vault import and export workflows with step-up verification
+- Emergency revocation that invalidates active leases
+- Credential values are never displayed, copied, persisted, or resolved in the browser
+- Reference-only JavaScript and Python SDKs for sanitized orchestration results
 
 ### Categories
 - Create, edit, and delete categories with custom colors and icons
@@ -53,11 +54,12 @@ ACCX is a full-featured account management system designed for individuals who w
 - Masonry-style card layout with color-coded filter bar
 
 ### Dashboard
-- **Metric cards** — total accounts, folders, categories, and notes at a glance
+- **Metric cards** — account references, folders, categories, and notes at a glance
 - **Area chart** — growth overview over time (Recharts)
 - **Pie chart** — account distribution by category
-- **Favorites panel** — quick access to starred accounts
-- **Activity feed** — tracks all recent creates, updates, and deletes with timestamps
+- **Favorites panel** — quick access to starred account references
+- **Activity feed** — local UI activity for the transitional organization features
+- Sanitized cloud audit history for protected account metadata
 
 ### Search & Filter
 - Full-text search on every page (accounts, categories, folders, notes)
@@ -69,7 +71,7 @@ ACCX is a full-featured account management system designed for individuals who w
 - **Dark mode** (default) — true dark zinc-950 background with teal accent
 - **Light mode** — off-white base with refined zinc gray scale
 - Toggle via Sun/Moon icon in the header
-- Persisted to localStorage, respects `prefers-color-scheme` on first visit
+- Only the non-sensitive theme preference is persisted to localStorage
 - Smooth 200ms transition between themes
 
 ### Collapsible Sidebar
@@ -87,7 +89,7 @@ ACCX is a full-featured account management system designed for individuals who w
 | **Framework** | React 19 + TypeScript |
 | **Build Tool** | Vite 8 |
 | **Styling** | Tailwind CSS 4 with CSS custom properties |
-| **State** | Zustand with localStorage persistence |
+| **State** | Zustand for UI and transitional organization state; cloud metadata via API |
 | **Routing** | React Router v7 |
 | **Charts** | Recharts |
 | **Icons** | Lucide React |
@@ -111,10 +113,10 @@ git clone https://github.com/nexuss0781/ACCX.git
 cd ACCX
 
 # Install dependencies
-npm install
+pnpm install --frozen-lockfile
 
 # Start development server
-npm run dev
+pnpm dev
 ```
 
 The app will be available at `http://localhost:5173`.
@@ -122,7 +124,7 @@ The app will be available at `http://localhost:5173`.
 ### Build
 
 ```bash
-npm run build
+pnpm build
 ```
 
 Output is in the `dist/` directory.
@@ -130,7 +132,7 @@ Output is in the `dist/` directory.
 ### Preview
 
 ```bash
-npm run preview
+pnpm preview
 ```
 
 ---
@@ -157,7 +159,7 @@ src/
 │   ├── LoginPage.tsx           # Authentication — login
 │   ├── RegisterPage.tsx        # Authentication — registration
 │   ├── DashboardPage.tsx       # Metrics, charts, activity feed
-│   ├── AccountsPage.tsx        # Account cards with full CRUD + custom fields
+│   ├── AccountsPage.tsx        # Metadata-only cloud account console
 │   ├── CategoriesPage.tsx      # Category management with color/icon picker
 │   ├── FoldersPage.tsx         # Folder management
 │   └── NotesPage.tsx           # Color-coded notes with masonry layout
@@ -166,7 +168,7 @@ src/
 ├── types/
 │   └── index.ts                # TypeScript interfaces and constants
 ├── utils/
-│   ├── index.ts                # Utility functions (timeAgo, maskPassword, cn)
+│   ├── utils/index.ts                # Utility functions (timeAgo and class helpers)
 │   └── theme.ts                # Theme application and toggling logic
 ├── App.tsx                     # Router configuration with auth guards
 ├── main.tsx                    # Entry point with theme initialization
@@ -200,17 +202,9 @@ ACCX uses a **CSS custom property** system for theming, bridged into Tailwind vi
 
 ## Deployment
 
-ACCX is deployed on Vercel with zero-configuration:
+ACCX is deployed as one Vercel project containing the React control-plane interface and serverless API routes. The API requires server-only variables documented in `.env.example`, including the Paradox gateway credentials, ACCX vault key, administrator key, and worker key. Never expose these values through `VITE_*` variables, browser storage, logs, URLs, or SDK responses.
 
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-vercel --prod
-```
-
-The Vercel project auto-detects Vite and configures build/output settings.
+Use the release checklist in `docs/release-readiness.md` before deploying. Publishing the SDK packages is a separate protected workflow described in `docs/package-publication.md`.
 
 ---
 
