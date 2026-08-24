@@ -54,7 +54,7 @@ Browser             ACCX                  Nexuss Auth             OAuth provider
    |<----------------- 302 / with clean URL                             |
 ```
 
-The ACCX state record is one-time, expires quickly, and is bound to the initiating browser by a cryptographic hash of a SameSite cookie value. The state includes the expected provider, exact redirect URI, and a post-login destination restricted to an internal ACCX path. The callback rejects a missing, expired, consumed, mismatched, or malformed state. The callback never forwards `state`, `handoff_token`, OAuth `code`, or provider errors into the frontend route after processing.
+The ACCX state record is one-time, expires quickly, and is bound to the initiating browser by a cryptographic hash of a SameSite cookie value. The state includes the expected provider, exact redirect URI, and a post-login destination restricted to an internal ACCX path. Nexuss Auth’s production callback may return `nex_auth=success` and `handoff_token` without echoing ACCX’s internal state query, so ACCX correlates the response through the HttpOnly binding cookie and optionally verifies a returned state when present. The callback rejects a missing, expired, consumed, mismatched, or malformed binding/state. The callback never forwards `state`, `handoff_token`, OAuth `code`, or provider errors into the frontend route after processing.
 
 The server-to-server handoff request uses the configured Nexuss Auth origin and sends JSON only. ACCX verifies an HTTPS origin in production, checks the HTTP response, validates the response object, and requires a non-empty stable subject. The one-time handoff token is held only in process memory for the duration of the request and is not written to logs.
 

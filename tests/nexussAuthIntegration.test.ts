@@ -21,6 +21,8 @@ describe("Nexuss Auth integration", () => {
     expect(nexuss).toContain("nexuss_oauth_states");
     expect(nexuss).toContain("binding_hash");
     expect(nexuss).toContain("consumed_at");
+    expect(nexuss).toContain("queryValue(req, \"state\") ?? queryValue(req, \"accx_state\")");
+    expect(nexuss).toContain("WHERE binding_hash = ? ORDER BY created_at DESC LIMIT 1");
     expect(nexuss).toContain("/v1/handoff/exchange");
     expect(nexuss).toContain("projectId: config.projectId");
     expect(nexuss).toContain("handoffToken: token");

@@ -176,13 +176,15 @@ export async function handleNexussCallback(req: ApiRequest, res: ApiResponse): P
   let nextPath = "/";
   try {
     const config = configured();
-    const state = queryValue(req, "state");
+    const state = queryValue(req, "state") ?? queryValue(req, "accx_state");
     const handoffToken = queryValue(req, "handoff_token");
     const binding = cookieValue(req, BINDING_COOKIE);
-    if (!state || !handoffToken || !binding) throw new Error("NEXUSS_STATE_INVALID");
+    if (!handoffToken || !binding) throw new Error("NEXUSS_STATE_INVALID");
     const stateRecord = await withControlPlaneDb(db => {
       db.execute(`DELETE FROM nexuss_oauth_states WHERE expires_at <= ?`, [now()]);
-      const record = first<StateRow>(db.execute(`SELECT id, binding_hash, provider, redirect_uri, next_path, expires_at, consumed_at FROM nexuss_oauth_states WHERE state_hash = ?`, [hash(state)]));
+      const record = state
+        ? first<StateRow>(db.execute(`SELECT id, binding_hash, provider, redirect_uri, next_path, expires_at, consumed_at FROM nexuss_oauth_states WHERE state_hash = ? AND binding_hash = ?`, [hash(state), hash(binding)]))
+        : first<StateRow>(db.execute(`SELECT id, binding_hash, provider, redirect_uri, next_path, expires_at, consumed_at FROM nexuss_oauth_states WHERE binding_hash = ? ORDER BY created_at DESC LIMIT 1`, [hash(binding)]));
       if (!record || record.consumed_at || record.binding_hash !== hash(binding) || record.redirect_uri !== config.redirectUri || new Date(record.expires_at).getTime() <= Date.now()) throw new Error("NEXUSS_STATE_INVALID");
       db.execute(`UPDATE nexuss_oauth_states SET consumed_at = ? WHERE id = ? AND consumed_at IS NULL`, [now(), record.id]);
       return record;
