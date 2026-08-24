@@ -5,10 +5,13 @@ import type { ParadConnection } from "parad";
 import { serverEnv } from "./env.js";
 import { ensureSchema } from "./schema.js";
 
+const PARADOX_RUNTIME_HOME = "/tmp/accx-paradox";
+
 /** A Vercel invocation gets a fresh encrypted database copy and always closes it before returning. */
 export async function withControlPlaneDb<T>(operation: (db: ParadConnection) => Promise<T> | T, options: { write?: boolean } = {}): Promise<T> {
   const requestKey = randomUUID();
   const dbPath = `/tmp/accx-${requestKey}.db`;
+  process.env.PARADOX_HOME ??= PARADOX_RUNTIME_HOME;
   const db = await connect({
     url: serverEnv.databaseUrl(),
     dbPath,
