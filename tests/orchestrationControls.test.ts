@@ -28,6 +28,12 @@ describe("ACCX orchestration controls", () => {
     expect(route).toContain("resolveJobApproval");
   });
 
+  it("registers a safe in-control-plane adapter for provider health checks", () => {
+    const executor = source("server/_lib/executor.ts");
+    expect(executor).toContain('adapters.set("provider.health_check"');
+    expect(executor).toContain("Trusted provider lease health check completed.");
+  });
+
   it("passes a cancellation signal to providers and never writes raw provider results to audits", () => {
     const executor = source("server/_lib/executor.ts");
     expect(executor).toContain("new AbortController()");

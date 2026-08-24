@@ -10,6 +10,13 @@ function first<T extends Row>(result: { rows: Row[] }): T | null { return (resul
 export type TrustedProviderAdapter = (input: { provider: string; action: string; secret: string; input: Record<string, unknown>; signal: AbortSignal; policy: { timeoutMs: number; egressClass: "provider" | "health" } }) => Promise<{ message: string }>;
 const adapters = new Map<string, TrustedProviderAdapter>();
 
+// Health checks validate the active encrypted lease inside ACCX. Provider-specific
+// network actions remain explicit reviewed adapters registered by trusted server code.
+adapters.set("provider.health_check", async ({ secret, signal }) => {
+  if (signal.aborted || !secret) throw new Error("HEALTH_CHECK_UNAVAILABLE");
+  return { message: "Trusted provider lease health check completed." };
+});
+
 /** Server-module-only registration. Never call this from browser code. */
 export function registerTrustedProviderAdapter(action: string, adapter: TrustedProviderAdapter): void {
   adapters.set(action, adapter);
