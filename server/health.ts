@@ -2,6 +2,15 @@ import type { ApiRequest, ApiResponse } from "./_lib/http.js";
 import { sendJson } from "./_lib/http.js";
 import { withControlPlaneDb } from "./_lib/paradox.js";
 
+function sanitizeDatabaseError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return message
+    .replace(/((?:parad|https?):\/\/)[^@\s/]+:[^@\s/]+@/gi, "$1<redacted>@")
+    .replace(/([?&](?:token|passphrase|password|api[_-]?key)=[^&\s]+)/gi, "$1=<redacted>")
+    .replace(/\/(?:var\/task|home\/ubuntu)\/[^\s)]+/g, "/<redacted-path>")
+    .slice(0, 300);
+}
+
 function classifyDatabaseError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   if (message.startsWith("Missing required server environment variable:")) return "missing_server_environment";
@@ -31,6 +40,7 @@ export default async function handler(_req: ApiRequest, res: ApiResponse): Promi
       dependencies: { database: "error" },
       revision: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "unknown",
       error: classifyDatabaseError(error),
+      error_detail: sanitizeDatabaseError(error),
     });
   }
 }
