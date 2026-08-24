@@ -5,13 +5,23 @@ const initSqlJs = require('../sql.js/dist/sql-wasm.cjs');
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { existsSync } from 'node:fs';
 import { decryptBytes, decryptFile, encryptBytes, DecryptionError } from './crypto.js';
 import { DatabaseNotOpenError, SQLiteError } from './errors.js';
 import { decodeEntry, encodeEntry, wrapEntry } from './journal.js';
 let sqlPromise = null;
 async function getSql() {
     if (!sqlPromise) {
-        sqlPromise = initSqlJs({ locateFile: () => fileURLToPath(new URL('../sql.js/dist/sql-wasm.wasm', import.meta.url)) });
+        sqlPromise = initSqlJs({ locateFile: () => {
+            const candidates = [
+                path.join(process.cwd(), 'server/assets/sql-wasm.wasm'),
+                path.join(process.cwd(), 'server/vendor/sql.js/dist/sql-wasm.wasm'),
+                fileURLToPath(new URL('../sql.js/dist/sql-wasm.wasm', import.meta.url)),
+            ];
+            const wasmPath = candidates.find(candidate => existsSync(candidate));
+            if (!wasmPath) throw new Error(`sql.js WASM asset not found; checked ${candidates.join(', ')}`);
+            return wasmPath;
+        } });
     }
     return sqlPromise;
 }

@@ -27,7 +27,7 @@ describe("ACCX release-readiness contract", () => {
     const config = source("vercel.json");
     expect(packageJson).toContain('"node": "22.x"');
     expect(config).not.toContain("NODE_OPTIONS");
-    expect(config).toContain('"includeFiles": "server/vendor/sql.js/dist/sql-wasm.wasm"');
+    expect(config).toContain('"includeFiles": "server/assets/sql-wasm.wasm"');
     expect(source("server/vendor/parad/engine.js")).toContain("locateFile");
     expect(source("server/vendor/parad/engine.js")).toContain("sql-wasm.wasm");
     expect(source("server/vendor/parad/engine.js")).toContain("sql-wasm.cjs");
