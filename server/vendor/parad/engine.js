@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const initSqlJs = require('../sql.js/dist/sql-wasm.cjs');
 import * as fs from 'node:fs';
@@ -10,7 +11,7 @@ import { decodeEntry, encodeEntry, wrapEntry } from './journal.js';
 let sqlPromise = null;
 async function getSql() {
     if (!sqlPromise) {
-        sqlPromise = initSqlJs({ locateFile: () => path.join(process.cwd(), "server/assets/sql-wasm.wasm") });
+        sqlPromise = initSqlJs({ locateFile: () => fileURLToPath(new URL('../sql.js/dist/sql-wasm.wasm', import.meta.url)) });
     }
     return sqlPromise;
 }
