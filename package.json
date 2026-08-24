@@ -12,8 +12,7 @@
     "test:network": "ACCX_NETWORK_TEST=true vitest run tests/runtimeSecrets.test.ts",
     "test:live-paradox": "ACCX_LIVE_PARADOX_TEST=true vitest run tests/liveParadox.test.ts",
     "check:api": "tsc -p tsconfig.api.json",
-    "check:sdk": "tsc -p tsconfig.sdk.json",
-    "postinstall": "node scripts/patch-parad-wasm.mjs"
+    "check:sdk": "tsc -p tsconfig.sdk.json"
   },
   "dependencies": {
     "@simplewebauthn/browser": "^13.3.0",

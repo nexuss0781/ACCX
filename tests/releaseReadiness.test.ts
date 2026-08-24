@@ -27,6 +27,6 @@ describe("ACCX release-readiness contract", () => {
     expect(config).toContain("NODE_OPTIONS");
     expect(config).toContain("--disable-warning=DEP0169");
     expect(config).toContain('"includeFiles": "server/assets/sql-wasm.wasm"');
-    expect(source("scripts/patch-parad-wasm.mjs")).toContain("locateFile");
+    expect(source("patches/parad@2.2.4.patch")).toContain("locateFile");
   });
 });

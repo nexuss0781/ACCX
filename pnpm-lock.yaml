@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  parad@2.2.4: a37ef4ba908fd3b622b564a0c20b7a2d097051bd0e1cef187c06fc0b6ba70df5
+
 importers:
 
   .:
@@ -25,7 +28,7 @@ importers:
         version: 0.511.0(react@19.2.8)
       parad:
         specifier: ^2.2.4
-        version: 2.2.4(drizzle-orm@0.45.2(sql.js@1.14.2))
+        version: 2.2.4(patch_hash=a37ef4ba908fd3b622b564a0c20b7a2d097051bd0e1cef187c06fc0b6ba70df5)(drizzle-orm@0.45.2(sql.js@1.14.2))
       react:
         specifier: ^19.2.7
         version: 19.2.8
@@ -1887,7 +1890,7 @@ snapshots:
       '@oxlint/binding-win32-ia32-msvc': 1.78.0
       '@oxlint/binding-win32-x64-msvc': 1.78.0
 
-  parad@2.2.4(drizzle-orm@0.45.2(sql.js@1.14.2)):
+  parad@2.2.4(patch_hash=a37ef4ba908fd3b622b564a0c20b7a2d097051bd0e1cef187c06fc0b6ba70df5)(drizzle-orm@0.45.2(sql.js@1.14.2)):
     dependencies:
       drizzle-orm: 0.45.2(sql.js@1.14.2)
       sql.js: 1.14.2

@@ -1,2 +1,4 @@
 minimumReleaseAgeExclude:
   - parad@2.2.2 || 2.2.4
+patchedDependencies:
+  parad@2.2.4: patches/parad@2.2.4.patch
