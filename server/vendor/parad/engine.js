@@ -1,6 +1,4 @@
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
-const initSqlJs = require('../sql.js/dist/sql-asm.cjs');
+import initSqlJs from '../sql.js/dist/sql-asm.cjs';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
