@@ -4,9 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-patchedDependencies:
-  parad@2.2.4: a37ef4ba908fd3b622b564a0c20b7a2d097051bd0e1cef187c06fc0b6ba70df5
-
 importers:
 
   .:
@@ -27,8 +24,8 @@ importers:
         specifier: ^0.511.0
         version: 0.511.0(react@19.2.8)
       parad:
-        specifier: ^2.2.4
-        version: 2.2.4(patch_hash=a37ef4ba908fd3b622b564a0c20b7a2d097051bd0e1cef187c06fc0b6ba70df5)(drizzle-orm@0.45.2(sql.js@1.14.2))
+        specifier: file:vendor/parad
+        version: file:vendor/parad(drizzle-orm@0.45.2(sql.js@1.14.2))
       react:
         specifier: ^19.2.7
         version: 19.2.8
@@ -971,8 +968,8 @@ packages:
       vite-plus:
         optional: true
 
-  parad@2.2.4:
-    resolution: {integrity: sha512-KOLtf1g/U1+wI4H4qJsRdTtE86vL/KG3sSFqsbLd0XNnggTr8mDfwwuxyYlBxdzfn85EMz/G81tj83g5yYEIlg==}
+  parad@file:vendor/parad:
+    resolution: {directory: vendor/parad, type: directory}
     engines: {node: '>=18'}
     hasBin: true
     peerDependencies:
@@ -1890,7 +1887,7 @@ snapshots:
       '@oxlint/binding-win32-ia32-msvc': 1.78.0
       '@oxlint/binding-win32-x64-msvc': 1.78.0
 
-  parad@2.2.4(patch_hash=a37ef4ba908fd3b622b564a0c20b7a2d097051bd0e1cef187c06fc0b6ba70df5)(drizzle-orm@0.45.2(sql.js@1.14.2)):
+  parad@file:vendor/parad(drizzle-orm@0.45.2(sql.js@1.14.2)):
     dependencies:
       drizzle-orm: 0.45.2(sql.js@1.14.2)
       sql.js: 1.14.2
