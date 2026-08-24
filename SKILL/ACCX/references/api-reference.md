@@ -76,7 +76,7 @@ Content-Type: application/json
 
 ACCX validates the key against Nexuss Auth `/v1/me` for the configured project. On success it maps the stable Nexuss issuer and subject, then sets the normal ACCX session cookie. The key is not stored by ACCX, is not accepted as an ACCX workload token, and does not grant service scopes.
 
-If the Nexuss identity’s email matches an existing unlinked local account, ACCX returns `nexuss_auth_account_link_required` rather than silently joining accounts.
+If the browser handoff identity’s email matches an existing unlinked local account, ACCX returns `nexuss_auth_account_link_required` rather than silently joining accounts. The explicit `nexuss_token_login` path is the portable migration path: the caller presents a validated user-owned Nexuss bearer key, and ACCX may link the matching local email while storing only the issuer and subject.
 
 ### `POST /api/v1/auth` with `command: nexuss_link`
 

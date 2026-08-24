@@ -92,7 +92,7 @@ function localUser(db: ParadConnection, userId: string): { id: string; email: st
 function newIdentityEmail(subject: string): string {
   return `nexuss-${hash(subject).slice(0, 32)}@identity.invalid`;
 }
-function ensureIdentity(db: ParadConnection, config: NonNullable<ReturnType<typeof serverEnv.nexussAuth>>, nexussUser: NexussUser, provider: string): { userId: string; created: boolean } {
+function ensureIdentity(db: ParadConnection, config: NonNullable<ReturnType<typeof serverEnv.nexussAuth>>, nexussUser: NexussUser, provider: string, allowExplicitEmailLink = false): { userId: string; created: boolean } {
   const issuer = identityIssuer(config.authUrl);
   const existingIdentity = first<{ user_id: string }>(db.execute(`SELECT user_id FROM external_identities WHERE issuer = ? AND subject = ?`, [issuer, nexussUser.id]));
   if (existingIdentity) {
@@ -102,7 +102,11 @@ function ensureIdentity(db: ParadConnection, config: NonNullable<ReturnType<type
 
   if (nexussUser.email) {
     const emailMatch = first<{ id: string }>(db.execute(`SELECT id FROM users WHERE email = ?`, [nexussUser.email]));
-    if (emailMatch) throw new Error("NEXUSS_LINK_REQUIRED");
+    if (emailMatch) {
+      if (!allowExplicitEmailLink) throw new Error("NEXUSS_LINK_REQUIRED");
+      linkIdentity(db, config, nexussUser, provider, emailMatch.id);
+      return { userId: emailMatch.id, created: false };
+    }
   }
 
   const userId = randomUUID();
@@ -140,9 +144,9 @@ async function identityFromUpstream(config: NonNullable<ReturnType<typeof server
   if (!user) throw new Error("NEXUSS_AUTH_UNAUTHORIZED");
   return validatedUser(user);
 }
-async function createLocalSession(config: NonNullable<ReturnType<typeof serverEnv.nexussAuth>>, nexussUser: NexussUser, provider: string, req: ApiRequest): Promise<IdentityResult> {
+async function createLocalSession(config: NonNullable<ReturnType<typeof serverEnv.nexussAuth>>, nexussUser: NexussUser, provider: string, req: ApiRequest, allowExplicitEmailLink = false): Promise<IdentityResult> {
   return withControlPlaneDb(db => {
-    const identity = ensureIdentity(db, config, nexussUser, provider);
+    const identity = ensureIdentity(db, config, nexussUser, provider, allowExplicitEmailLink);
     const user = localUser(db, identity.userId);
     const session = createUserSession(db, identity.userId, req);
     return { user, sessionToken: session.token };
@@ -226,7 +230,7 @@ export async function loginWithNexussToken(req: ApiRequest, res: ApiResponse): P
     const token = header(req, "authorization")?.replace(/^Bearer\s+/i, "").trim() ?? "";
     if (!/^nxa_[A-Za-z0-9_-]{20,160}$/.test(token)) throw new Error("NEXUSS_AUTH_UNAUTHORIZED");
     const user = await identityFromUpstream(config, token);
-    const result = await createLocalSession(config, user, "api_token", req);
+    const result = await createLocalSession(config, user, "api_token", req, true);
     res.setHeader("Set-Cookie", sessionCookieHeader(result.sessionToken));
     sendJson(res, 200, { user: result.user });
   } catch (error) { errorResponse(res, error); }
