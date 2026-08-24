@@ -24,8 +24,8 @@ importers:
         specifier: ^0.511.0
         version: 0.511.0(react@19.2.8)
       parad:
-        specifier: ^2.2.4
-        version: 2.2.4(drizzle-orm@0.45.2(sql.js@1.14.2))
+        specifier: ^2.2.3
+        version: 2.2.3(drizzle-orm@0.45.2(sql.js@1.14.2))
       react:
         specifier: ^19.2.7
         version: 19.2.8
@@ -968,8 +968,8 @@ packages:
       vite-plus:
         optional: true
 
-  parad@2.2.4:
-    resolution: {integrity: sha512-KOLtf1g/U1+wI4H4qJsRdTtE86vL/KG3sSFqsbLd0XNnggTr8mDfwwuxyYlBxdzfn85EMz/G81tj83g5yYEIlg==}
+  parad@2.2.3:
+    resolution: {integrity: sha512-1LPbtKeyfsHzYUVPVOJvDOPwRFG34G5Nie75i5Dj8O4+MMLdXz0dFRdBtcopnZhIi0XoQvh9nagB+WlU7OZsPA==}
     engines: {node: '>=18'}
     hasBin: true
     peerDependencies:
@@ -1887,7 +1887,7 @@ snapshots:
       '@oxlint/binding-win32-ia32-msvc': 1.78.0
       '@oxlint/binding-win32-x64-msvc': 1.78.0
 
-  parad@2.2.4(drizzle-orm@0.45.2(sql.js@1.14.2)):
+  parad@2.2.3(drizzle-orm@0.45.2(sql.js@1.14.2)):
     dependencies:
       drizzle-orm: 0.45.2(sql.js@1.14.2)
       sql.js: 1.14.2
