@@ -1,0 +1,75 @@
+export class DatabaseNotOpenError extends Error {
+    constructor(message = 'Database not open') {
+        super(message);
+        this.name = 'DatabaseNotOpenError';
+    }
+}
+export class SQLiteError extends Error {
+    originalError;
+    constructor(message, originalError) {
+        super(message);
+        this.name = 'SQLiteError';
+        this.originalError = originalError;
+    }
+}
+export class DecryptionError extends Error {
+    constructor(message = 'Invalid passphrase or corrupt database file') {
+        super(message);
+        this.name = 'DecryptionError';
+    }
+}
+export class EncryptionError extends Error {
+    constructor(message = 'Wrong passphrase or corrupted database') {
+        super(message);
+        this.name = 'EncryptionError';
+    }
+}
+export class GatewayError extends Error {
+    statusCode;
+    detail;
+    constructor(statusCode, message, detail) {
+        super(message);
+        this.name = 'GatewayError';
+        this.statusCode = statusCode;
+        this.detail = detail;
+    }
+}
+export class ConfigError extends Error {
+    constructor(message = 'Invalid configuration') {
+        super(message);
+        this.name = 'ConfigError';
+    }
+}
+export class ConflictError extends Error {
+    remoteVersion;
+    yourVersion;
+    remoteMessageId;
+    constructor(remoteVersion, yourVersion, remoteMessageId) {
+        super(`Conflict: remote v${remoteVersion} vs your v${yourVersion}`);
+        this.name = 'ConflictError';
+        this.remoteVersion = remoteVersion;
+        this.yourVersion = yourVersion;
+        this.remoteMessageId = remoteMessageId;
+    }
+}
+export class RateLimitError extends Error {
+    retryAfterSeconds;
+    constructor(retryAfterSeconds) {
+        super(`Rate limited: retry after ${retryAfterSeconds}s`);
+        this.name = 'RateLimitError';
+        this.retryAfterSeconds = retryAfterSeconds;
+    }
+}
+export class AuthenticationError extends Error {
+    constructor(message = 'Authentication failed') {
+        super(message);
+        this.name = 'AuthenticationError';
+    }
+}
+export class NetworkError extends Error {
+    constructor(message = 'Network error') {
+        super(message);
+        this.name = 'NetworkError';
+    }
+}
+//# sourceMappingURL=errors.js.map
