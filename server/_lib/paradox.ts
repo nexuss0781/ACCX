@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { rm } from "node:fs/promises";
-import { connect } from "../../vendor/parad/dist/connection.js";
+import { connect } from "../vendor/parad/connection.js";
 import type { ParadConnection } from "parad";
 import { serverEnv } from "./env.js";
 import { ensureSchema } from "./schema.js";

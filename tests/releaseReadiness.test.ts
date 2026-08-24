@@ -28,6 +28,8 @@ describe("ACCX release-readiness contract", () => {
     expect(packageJson).toContain('"node": "22.x"');
     expect(config).not.toContain("NODE_OPTIONS");
     expect(config).toContain('"includeFiles": "server/assets/sql-wasm.wasm"');
-    expect(source("vendor/parad/dist/engine.js")).toContain("locateFile");
+    expect(source("server/vendor/parad/engine.js")).toContain("locateFile");
+    expect(source("server/vendor/parad/engine.js")).toContain("sql-wasm.cjs");
+    expect(source("server/_lib/paradox.ts")).toContain("../vendor/parad/connection.js");
   });
 });
