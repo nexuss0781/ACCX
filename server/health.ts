@@ -20,6 +20,7 @@ export default async function handler(_req: ApiRequest, res: ApiResponse): Promi
       status: databaseOk ? "ok" : "degraded",
       runtime: "vercel-serverless",
       dependencies: { database: databaseOk ? "ok" : "error" },
+      revision: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "unknown",
     });
   } catch (error) {
     sendJson(res, 503, {
@@ -27,6 +28,7 @@ export default async function handler(_req: ApiRequest, res: ApiResponse): Promi
       status: "degraded",
       runtime: "vercel-serverless",
       dependencies: { database: "error" },
+      revision: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "unknown",
       error: classifyDatabaseError(error),
     });
   }
