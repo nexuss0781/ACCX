@@ -50,7 +50,7 @@ After activation, clear temporary variables, temporary files, clipboard contents
 
 ## User-account ownership
 
-Before writing a record, establish which authenticated user account and workspace are active. Use the session created by `register` or `login` for user-owned metadata. Use the trusted activation path to encrypt and activate the value. If the user has multiple accounts or environments and the target is unclear, ask one focused selection question.
+Before writing a record, establish which authenticated user account and workspace are active. Use the ACCX session created by Continue with nexuss-auth or portable Nexuss token login for user-owned metadata. Use the trusted activation path to encrypt and activate the value. If the user has multiple accounts or environments and the target is unclear, ask one focused selection question.
 
 Do not save a credential to a different user, workspace, project, or environment merely because it is the first match. Do not create a second duplicate record when an exact active reference already exists; offer an update or rotation path instead.
 

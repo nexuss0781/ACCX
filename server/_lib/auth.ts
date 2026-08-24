@@ -64,8 +64,12 @@ export function requireSession(db: ParadConnection, req: ApiRequest): SessionUse
   return user;
 }
 
+export function sessionCookieHeader(token: string): string {
+  return `accx_session=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${sessionDays * 86_400}`;
+}
+
 export function setSessionCookie(res: ApiResponse, token: string): void {
-  res.setHeader("Set-Cookie", `accx_session=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${sessionDays * 86_400}`);
+  res.setHeader("Set-Cookie", sessionCookieHeader(token));
 }
 
 export function clearSessionCookie(res: ApiResponse): void {

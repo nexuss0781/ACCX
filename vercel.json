@@ -4,7 +4,8 @@
   "buildCommand": "pnpm run build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/health", "destination": "/api/health" }
+    { "source": "/health", "destination": "/api/health" },
+    { "source": "/auth/nexuss/callback", "destination": "/api/v1/auth?command=nexuss_callback" }
   ],
   "headers": [
     {

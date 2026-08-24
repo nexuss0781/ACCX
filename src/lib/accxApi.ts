@@ -13,6 +13,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 export const accxApi = {
   session: () => request<{ user: AppBootstrap['user'] | null }>('/api/v1/auth?command=session'),
+  nexussStart: (provider: 'google' | 'github', next = '/') => request<{ authorizationUrl: string }>(`/api/v1/auth?command=nexuss_start&provider=${encodeURIComponent(provider)}&next=${encodeURIComponent(next)}`),
   login: (email: string, password: string) => request<{ user: AppBootstrap['user'] }>('/api/v1/auth', { method: 'POST', body: JSON.stringify({ command: 'login', email, password }) }),
   register: (name: string, email: string, password: string) => request<{ user: AppBootstrap['user'] }>('/api/v1/auth', { method: 'POST', body: JSON.stringify({ command: 'register', name, email, password }) }),
   logout: () => request<{ ok: boolean }>('/api/v1/auth', { method: 'POST', body: JSON.stringify({ command: 'logout' }) }),

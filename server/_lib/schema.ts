@@ -3,6 +3,8 @@ import type { ParadConnection } from "parad";
 export function ensureSchema(db: ParadConnection): void {
   db.execute(`CREATE TABLE IF NOT EXISTS control_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`);
   db.execute(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, name TEXT NOT NULL, password_hash TEXT NOT NULL, created_at TEXT NOT NULL)`);
+  db.execute(`CREATE TABLE IF NOT EXISTS external_identities (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, issuer TEXT NOT NULL, subject TEXT NOT NULL, provider TEXT NOT NULL, email_at_link TEXT, created_at TEXT NOT NULL, last_seen_at TEXT NOT NULL, UNIQUE(issuer, subject), UNIQUE(user_id, issuer, subject))`);
+  db.execute(`CREATE TABLE IF NOT EXISTS nexuss_oauth_states (id TEXT PRIMARY KEY, state_hash TEXT NOT NULL UNIQUE, binding_hash TEXT NOT NULL, provider TEXT NOT NULL, redirect_uri TEXT NOT NULL, next_path TEXT NOT NULL, expires_at TEXT NOT NULL, consumed_at TEXT, created_at TEXT NOT NULL)`);
   db.execute(`CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, token_hash TEXT NOT NULL UNIQUE, expires_at TEXT NOT NULL, created_at TEXT NOT NULL, revoked_at TEXT)`);
   db.execute(`CREATE TABLE IF NOT EXISTS mfa_totp_factors (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, label TEXT NOT NULL, encrypted_data_key_json TEXT NOT NULL, encrypted_secret_json TEXT NOT NULL, algorithm TEXT NOT NULL, verified_at TEXT, created_at TEXT NOT NULL, revoked_at TEXT)`);
   db.execute(`CREATE TABLE IF NOT EXISTS mfa_recovery_codes (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, code_hash TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL, used_at TEXT)`);
@@ -28,6 +30,8 @@ export function ensureSchema(db: ParadConnection): void {
   db.execute(`CREATE INDEX IF NOT EXISTS idx_audit_workspace_created ON audit_events(workspace_id, created_at)`);
   db.execute(`CREATE INDEX IF NOT EXISTS idx_leases_expiry ON secret_leases(expires_at)`);
   db.execute(`CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash)`);
+  db.execute(`CREATE INDEX IF NOT EXISTS idx_external_identities_user ON external_identities(user_id)`);
+  db.execute(`CREATE INDEX IF NOT EXISTS idx_nexuss_oauth_states_expiry ON nexuss_oauth_states(expires_at)`);
   db.execute(`CREATE INDEX IF NOT EXISTS idx_sessions_user_active ON sessions(user_id, revoked_at, expires_at)`);
   db.execute(`CREATE INDEX IF NOT EXISTS idx_mfa_totp_user_active ON mfa_totp_factors(user_id, revoked_at, verified_at)`);
   db.execute(`CREATE INDEX IF NOT EXISTS idx_webauthn_user_active ON webauthn_credentials(user_id, revoked_at)`);

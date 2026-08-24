@@ -6,7 +6,7 @@ ACCX has two practical consumer modes:
 
 | Mode | Use when | Authentication |
 |---|---|---|
-| User-account mode | The AI is acting for a logged-in ACCX user and must record credentials to that user’s account | Session cookie from `register` or `login` |
+| User-account mode | The AI is acting for a logged-in ACCX user and must record credentials to that user’s account | ACCX session created by Continue with nexuss-auth or portable Nexuss token login |
 | Trusted-service mode | A backend service must use saved references and submit jobs | Protected workload token |
 
 Use user-account mode to create or manage the user’s vault records. Use trusted-service mode to read metadata and execute approved reference-based actions. Do not substitute a workload token for a human session.
@@ -31,31 +31,33 @@ Use the package version requested by the application. Verify the installed versi
 
 ACCX does not require a separate AI-specific CLI. Use `curl` for direct CLI/API operation or use the published SDK for backend code.
 
-### Register a user
+### Continue with nexuss-auth from a browser
 
-Use a unique email and a password supplied through protected input. Do not put a real password in shell history or a transcript. Prefer a prompt/read mechanism or a secret manager.
-
-```bash
-read -r ACCX_USER_EMAIL
-read -rs ACCX_USER_PASSWORD
-curl -sS -c /tmp/accx-session.cookies -b /tmp/accx-session.cookies \
-  -H 'Content-Type: application/json' \
-  -d "{\"command\":\"register\",\"name\":\"<display name>\",\"email\":\"$ACCX_USER_EMAIL\",\"password\":\"$ACCX_USER_PASSWORD\"}" \
-  "$ACCX_ORIGIN/api/v1/auth"
-unset ACCX_USER_EMAIL ACCX_USER_PASSWORD
-```
-
-### Log in
+Use the ACCX start command to create browser-bound state and obtain the provider URL. Navigate the browser to the returned `authorizationUrl`; do not copy OAuth parameters into an AI transcript or manually exchange the callback token.
 
 ```bash
-read -r ACCX_USER_EMAIL
-read -rs ACCX_USER_PASSWORD
 curl -sS -c /tmp/accx-session.cookies -b /tmp/accx-session.cookies \
-  -H 'Content-Type: application/json' \
-  -d "{\"command\":\"login\",\"email\":\"$ACCX_USER_EMAIL\",\"password\":\"$ACCX_USER_PASSWORD\"}" \
-  "$ACCX_ORIGIN/api/v1/auth"
-unset ACCX_USER_EMAIL ACCX_USER_PASSWORD
+  "$ACCX_ORIGIN/api/v1/auth?command=nexuss_start&provider=github&next=/"
 ```
+
+The browser completes Google or GitHub sign-in at Nexuss Auth. The ACCX callback performs the one-time server-side handoff exchange and sets the ACCX session cookie. The final URL is clean and contains no OAuth code, state, or handoff token.
+
+### Portable Nexuss API-key login
+
+A user-owned `nxa_...` key can authenticate an API or CLI session without storing the key in ACCX. Send it only in the `Authorization` header to the explicit token-login command. Use a protected environment variable or secret manager and do not print it.
+
+```bash
+export NEXUSS_USER_TOKEN='<read from protected secret input>'
+curl -sS -c /tmp/accx-session.cookies -b /tmp/accx-session.cookies \
+  -X POST \
+  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $NEXUSS_USER_TOKEN" \
+  -d '{"command":"nexuss_token_login"}' \
+  "$ACCX_ORIGIN/api/v1/auth"
+unset NEXUSS_USER_TOKEN
+```
+
+If the Nexuss subject matches an existing unlinked ACCX account, the response is `nexuss_auth_account_link_required`. Authenticate that ACCX account and call `nexuss_link` explicitly with the same protected bearer header. ACCX stores the issuer and subject mapping, not the API key.
 
 Use a protected cookie jar with restrictive permissions. Do not print the cookie file. Verify the session without exposing cookies:
 
@@ -82,7 +84,75 @@ curl -sS \
 unset ACCX_WORKLOAD_TOKEN
 ```
 
-## 4. Record any provider credential to the user account
+## 4. Configure Continue with nexuss-auth
+
+Use Nexuss Auth as the preferred sign-in path when the ACCX project is connected to a Nexuss Auth project. The user authenticates with Google or GitHub at Nexuss Auth; ACCX receives a verified identity and creates or loads the matching ACCX user account.
+
+### Install and authenticate the Nexuss Auth CLI
+
+```bash
+python -m pip install --upgrade nexuss-auth
+nexuss --help
+export NEXUSS_AUTH_CONFIG_DIR="$HOME/.config/nexuss-agent"
+nexuss login --provider github
+nexuss --json whoami
+```
+
+Use `--provider google` for Google. The browser login is interactive; do not paste provider passwords, OAuth codes, or cookies into the terminal. If an authorized project-scoped `nxa_` token is already available, activate it without browser login:
+
+```bash
+nexuss token use --value nxa_<protected-token>
+nexuss --json whoami
+```
+
+Keep the token in protected input and never echo it. The token authorizes Nexuss Auth project operations; it is not an ACCX workload token.
+
+### Inspect or register the Nexuss Auth project
+
+```bash
+nexuss --json project list
+nexuss --json project show --id <nexuss-project-id>
+```
+
+The project must be active, enable the selected provider, contain the exact ACCX callback in `allowedRedirectUris`, and contain the exact ACCX origin in `allowedOrigins`. Create or update only after inspecting the existing project:
+
+```bash
+nexuss --json project create \
+  --id <nexuss-project-id> \
+  --name "ACCX" \
+  --home https://<accx-origin>/ \
+  --redirect https://<accx-origin>/auth/nexuss/callback \
+  --provider github
+```
+
+### Start Continue with nexuss-auth
+
+The ACCX UI calls `GET /api/v1/auth?command=nexuss_start&provider=github&next=/` and navigates to the returned `authorizationUrl`. Direct Nexuss Auth navigation is suitable only for integrations that implement their own browser-bound state and callback handler:
+
+```text
+https://nexuss-auth.vercel.app/oauth/start/github?project_id=<nexuss-project-id>&redirect_uri=<url-encoded-accx-callback>&handoff=1
+```
+
+Use `/oauth/start/google` for Google. Do not treat a redirect or success query parameter as proof of an ACCX session.
+
+### Exchange the one-time handoff
+
+For cross-site ACCX and Nexuss Auth deployments, the ACCX callback server receives a short-lived `handoff_token` and exchanges it once. Normal ACCX consumers do not call this endpoint; it is shown here to define the trusted server boundary:
+
+```bash
+curl -sS -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"projectId":"<nexuss-project-id>","handoffToken":"<received-in-callback-server>"}' \
+  'https://nexuss-auth.vercel.app/v1/handoff/exchange'
+```
+
+The callback server maps the returned verified Nexuss identity to the ACCX user account, creates the ACCX session, and redirects to a clean URL. Never exchange the handoff from browser JavaScript. A replay must fail; if it does not, stop the integration.
+
+### ACCX authentication migration
+
+Use Continue with Nexuss Auth as the default for new ACCX sessions. During migration, link a verified Nexuss identity to the existing ACCX user account before disabling password login. Keep the password path only as an explicit migration fallback until every required account has a verified link. Do not silently create duplicate accounts from the same email; match the verified Nexuss subject and issuer, then require deliberate account-linking rules.
+
+## 5. Record any provider credential to the user account
 
 Use this workflow when the user gives the AI a password, API token, refresh token, client secret, cookie, SSH key, recovery code, or another provider credential and asks to save it.
 

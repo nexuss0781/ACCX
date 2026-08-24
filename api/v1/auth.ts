@@ -14,6 +14,7 @@ import passkeyRegisterOptions from "../../server/v1/auth/mfa/passkey/register/op
 import passkeyRegisterVerify from "../../server/v1/auth/mfa/passkey/register/verify.js";
 import passkeyStepUpOptions from "../../server/v1/auth/mfa/passkey/step-up/options.js";
 import passkeyStepUpVerify from "../../server/v1/auth/mfa/passkey/step-up/verify.js";
+import { startNexussAuth, handleNexussCallback, loginWithNexussToken, linkNexussIdentity } from "../../server/v1/auth/nexuss.js";
 
 export default async function handler(req: ApiRequest, res: ApiResponse): Promise<void> {
   await dispatch(req, res, {
@@ -32,5 +33,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
     passkey_register_verify: passkeyRegisterVerify,
     passkey_step_up_options: passkeyStepUpOptions,
     passkey_step_up_verify: passkeyStepUpVerify,
+    nexuss_start: startNexussAuth,
+    nexuss_callback: handleNexussCallback,
+    nexuss_token_login: loginWithNexussToken,
+    nexuss_link: linkNexussIdentity,
   });
 }
