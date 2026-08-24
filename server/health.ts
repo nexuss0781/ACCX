@@ -7,6 +7,7 @@ function classifyDatabaseError(error: unknown): string {
   if (message.startsWith("Missing required server environment variable:")) return "missing_server_environment";
   if (/api.?key|unauthorized|authentication|login/i.test(message)) return "database_authentication";
   if (/passphrase|decrypt|cipher|encrypted/i.test(message)) return "database_decryption";
+  if (/cannot find module|module_not_found|err_module_not_found/i.test(message)) return "database_module_resolution";
   if (/wasm|sql\.js|enoent/i.test(message)) return "database_runtime_asset";
   if (/fetch|network|timeout|gateway|connect|econn|enotfound|503|502/i.test(message)) return "database_connectivity";
   return "database_runtime";
