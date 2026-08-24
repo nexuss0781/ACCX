@@ -38,6 +38,9 @@ importers:
       recharts:
         specifier: ^2.15.3
         version: 2.15.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      sql.js:
+        specifier: ^1.14.2
+        version: 1.14.2
       zod:
         specifier: ^4.4.3
         version: 4.4.3
