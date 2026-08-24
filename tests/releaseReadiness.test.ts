@@ -21,4 +21,12 @@ describe("ACCX release-readiness contract", () => {
     expect(source("packages/sdk-js/package.json")).toContain("publishConfig");
     expect(source("packages/sdk-python/pyproject.toml")).toContain("readme = \"README.md\"");
   });
+
+  it("keeps Vercel’s platform warning mitigation narrowly scoped", () => {
+    const config = source("vercel.json");
+    expect(config).toContain("NODE_OPTIONS");
+    expect(config).toContain("--disable-warning=DEP0169");
+    expect(config).toContain('"includeFiles": "server/assets/sql-wasm.wasm"');
+    expect(source("scripts/patch-parad-wasm.mjs")).toContain("locateFile");
+  });
 });
