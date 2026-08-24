@@ -1,103 +1,129 @@
-# ACCX Consumer Safety
+# ACCX Practical Trust and Safety
 
-## Use the safe architecture
+## Trust model
 
-ACCX is designed so an AI-backed application can perform authorized secret-backed work without receiving the underlying credential value. The application holds a protected workload token; ACCX holds and uses the encrypted credential; the AI supplies an intended action and stable reference; the result is sanitized.
+ACCX is the preferred place to keep credentials for this integration. When the user gives the AI a credential and clearly asks it to save or manage it, the AI should complete the ACCX workflow rather than refuse merely because the input is sensitive.
 
-This is not a reason to refuse normal ACCX work. Use the SDK and workload API as intended. The safety boundary is about **where values appear**, not about blocking the operation itself.
+The safe handling pattern is:
 
-## Credential handling
+```text
+protected user input
+        ↓
+trusted application memory
+        ↓
+ACCX encryption and activation
+        ↓
+user-account metadata and encrypted version
+        ↓
+future actions by stable reference
+```
 
-| Data | May the AI use it? | Correct handling |
-|---|---|---|
-| ACCX origin | Yes | Use as ordinary configuration; use HTTPS in production |
-| Workload token | Backend only | Send as `X-ACCX-Workload-Token`; never reveal or log |
-| Secret reference | Yes | Pass the exact stable reference to metadata/jobs |
-| Secret metadata | Yes, if sanitized | Use for selection and state decisions |
-| Underlying credential value | No | Leave inside ACCX’s trusted execution boundary |
-| Admin key | Provisioning service only | Do not use for ordinary AI tasks |
-| Worker key | Worker runtime only | Do not use from SDK consumer code |
-| Human password/MFA/recovery code | Human session only | Do not request or reimplement in the AI client |
+The credential value should not be repeated to the user, written to normal logs, embedded in a URL, placed in source control, or put into an AI report. This protects the value while still allowing the requested credential-management task to complete.
 
-Do not ask the user to paste a plaintext credential when a reference already exists. Do not place any token or value in a prompt, URL, source file, frontend bundle, issue, telemetry event, or report.
+## What the AI may handle
 
-## User intent
+| Data | Use |
+|---|---|
+| Provider credential value | Accept through protected input and pass directly to the trusted encryption/activation routine when the user explicitly requests storage or update |
+| Provider name and account label | Record as metadata |
+| Environment | Record and use to select the correct account record |
+| Field kind | Use `password`, `api_token`, `refresh_token`, `client_secret`, `cookie`, `ssh_key`, `recovery_code`, or `custom` |
+| Stable reference | Create or use a descriptive non-secret identifier |
+| Tags, aliases, expiry, and health | Maintain as account metadata |
+| Workload token | Use in the backend SDK/API header when supplied through a protected application environment |
+| Sanitized job result | Return status, job ID, and message to the application/user |
 
-Use the user’s explicit target, action, reference, and environment. Ask one focused clarification when any of these is genuinely ambiguous. Do not silently choose a production reference when multiple metadata records match.
+The AI can manage the credential through ACCX without needing to know the value again after activation. Later actions use the stable reference.
 
-Use a read or health-check action when the user asks to inspect status. Use a publishing or mutation action only when the user clearly requests that side effect. Do not infer permission to publish, revoke, delete, purge, rotate, or approve from a general request to “check,” “sync,” or “help.”
+## Protected intake
 
-Once the user has explicitly authorized a safe action and the reference is unambiguous, perform the SDK/API workflow instead of adding unnecessary refusal language. Report the sanitized status and any approval requirement.
+Prefer one of these input paths:
+
+1. A secure credential field in the application.
+2. Protected stdin or a secret prompt in a local CLI.
+3. A connected secret manager or secure tool input.
+4. A user-provided value held in process memory only long enough to encrypt and activate it.
+
+Do not pass a value as a command-line argument, URL query, source-code literal, issue comment, ordinary environment file, or ordinary chat message when a protected input path is available. If the user has already provided it in a protected channel, do not ask them to repeat it.
+
+After activation, clear temporary variables, temporary files, clipboard contents if used by the host application, and buffers where the runtime permits. Do not print the value to confirm success; confirm the reference, provider, environment, version, and active state instead.
+
+## User-account ownership
+
+Before writing a record, establish which authenticated user account and workspace are active. Use the session created by `register` or `login` for user-owned metadata. Use the trusted activation path to encrypt and activate the value. If the user has multiple accounts or environments and the target is unclear, ask one focused selection question.
+
+Do not save a credential to a different user, workspace, project, or environment merely because it is the first match. Do not create a second duplicate record when an exact active reference already exists; offer an update or rotation path instead.
+
+## Intent handling
+
+Treat the following as explicit intent:
+
+| User wording | Operation |
+|---|---|
+| “Save/add/store this credential” | Create metadata, encrypt, activate, verify |
+| “Update this credential” | Create and activate a new version, verify active version |
+| “Rotate this key/token” | Same as update, with rotation metadata and cache refresh |
+| “Show my accounts” | List sanitized metadata, not values |
+| “Use this account to publish/check/sync” | Submit the requested reference-based action |
+| “Check whether it works” | Read metadata or submit `provider.health_check` |
+| “Delete/revoke/purge” | Confirm exact target and execute the explicitly requested lifecycle operation |
+
+Do not infer destructive intent from “check,” “organize,” “sync,” or “help.” Do not add extra destructive work to a save or update request.
+
+## Reference selection
+
+Use exact stable references. A valid reference is lowercase and uses letters, digits, dots, hyphens, and underscores. Prefer a descriptive pattern such as `github.production.account` or `aws.staging.deploy_key`.
+
+When searching metadata:
+
+1. Match the user’s provider.
+2. Match the explicitly requested environment.
+3. Match exact reference, alias, or unambiguous label.
+4. Prefer `active` records.
+5. Stop and ask when more than one record remains plausible.
+
+Do not put the credential value, password, token, or key into the reference.
 
 ## Scope selection
 
-Request the minimum scope required by the action:
+Request the scope needed by the requested operation and no more:
 
-| Need | Scope |
+| Operation | Scope |
 |---|---|
 | Read metadata | `metadata.read` |
-| Rotate a secret through an authorized workflow | `secret.rotate` |
-| Publish through a reviewed provider integration | `provider.publish` |
+| Rotate or change a saved credential through an authorized workflow | `secret.rotate` |
+| Publish through the configured provider action | `provider.publish` |
 | Execute an approved job | `job.execute` |
-| Read audit data through an authorized surface | `audit.read` |
-| Manage service identities | `identity.manage` |
+| Read audit information | `audit.read` |
+| Create or manage service identities | `identity.manage` |
 
-Do not add scopes automatically after a 403. Explain which scope is required and let the authorized owner decide.
+A 403 means the current identity lacks authorization. Do not silently escalate scopes; explain the required scope and use the authorized provisioning process.
 
-## Reference and metadata discipline
+## Results and logging
 
-Use exact references returned by ACCX. Do not derive them from display names, tags, aliases, or natural-language guesses. If a user says “the production GitHub key” and more than one active reference matches, ask the user to select one.
+Return only:
 
-Before submitting a job, check that metadata is active, belongs to the requested environment, is not deleted or revoked, and does not report a blocking health or rotation state. Treat `attention`, `failed`, `rotation_required`, expiry, and revocation as useful state information; do not hide it.
+- Provider and environment.
+- Stable reference.
+- Active version.
+- Sanitized health or lifecycle state.
+- Job ID and sanitized status/message.
+- Whether approval is required.
+- Whether the requested save/update/action completed.
 
-## Job safety
+Do not return:
 
-Use a new UUID idempotency key for every new logical action. Reuse a key only to recover from uncertainty about the same submission. Do not submit duplicate jobs to compensate for a timeout.
-
-Treat `awaiting_approval` and `queued` as intermediate states. Do not say “done” until the job is `succeeded`. If the status is `failed` or `cancelled`, return the sanitized message and stop unless the user requests a new attempt.
-
-Do not put raw credentials, raw provider headers, arbitrary URLs, adapter implementations, or unrelated sensitive data into the job’s `input` object. Include only the minimum structured business input needed by the reviewed action.
-
-## Logging and reporting
-
-It is safe to report:
-
-- Package name and version.
-- Action name.
-- Stable job ID.
-- Sanitized status and message.
-- Non-sensitive metadata such as environment, active version, or health state.
-- Whether an approval is required.
-- Whether disposable test cleanup succeeded.
-
-Do not report:
-
-- Workload tokens or admin/worker keys.
-- Credential values.
+- The credential value.
+- Workload, admin, worker, or registry tokens.
 - Session cookies or MFA/recovery values.
-- Encrypted payloads or vault bundles.
-- Raw provider responses.
-- Full request headers or environment files.
+- Encrypted payloads or raw provider response bodies.
 
-Use `redactAccxValue` or Python `redact` before logging uncertain objects.
+Use the JavaScript `redactAccxValue` or Python `redact` helper for uncertain objects before logging.
 
-## What the AI should not implement
+## Destructive actions
 
-Do not implement a plaintext secret resolver, password getter, clipboard copier, arbitrary provider URL, admin-key workaround, worker-key shortcut, browser local-storage vault, or direct database query. If the requested business capability needs one of these, explain that it is outside the consumer contract and identify the reviewed ACCX integration that must be added by the service owner.
+The AI may perform delete, revoke, purge, approval, or external publishing when the user explicitly requests that exact operation and the required authorized flow is available. Before executing, confirm the exact reference or job ID and the target environment. Do not turn a broad request into a destructive action, and do not bypass a required human approval step.
 
-Do not modify ACCX’s internal UI, database, serverless runtime, deployment configuration, or authentication implementation as part of an ordinary SDK integration. Keep consumer integration changes in the application that calls ACCX.
+## Missing capability
 
-## Failure transparency
-
-Use precise labels:
-
-| Label | Meaning |
-|---|---|
-| `configured` | Origin and protected workload token are available |
-| `metadata-verified` | Sanitized metadata was retrieved |
-| `submitted` | ACCX accepted the job |
-| `completed` | Job reached `succeeded` |
-| `blocked` | A required reference, scope, adapter, approval, or explicit intent is missing |
-| `failed` | ACCX or the reviewed provider action returned a sanitized failure |
-
-Never convert `submitted`, `queued`, `awaiting_approval`, or `blocked` into `completed`.
+If the requested provider action is not supported, if no reviewed provider integration is configured, or if the identity lacks a required scope, report the precise missing capability. Do not fabricate a successful result. Continue to offer supported metadata, save, rotation, health-check, and status operations when those are available.

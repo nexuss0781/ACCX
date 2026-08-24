@@ -1,138 +1,241 @@
-# ACCX Consumer Workflows
+# ACCX End-to-End AI Workflows
 
-## 1. First connection
+## 1. Choose the operating mode
 
-Use this workflow when an AI-backed application is connecting to an existing ACCX deployment for the first time.
+ACCX has two practical consumer modes:
 
-### Inputs
-
-- ACCX HTTPS origin.
-- A protected workload token already provisioned for the backend service.
-- A known ACCX secret reference.
-- The intended action and its required scope.
-
-### Steps
-
-1. Store the origin as ordinary application configuration and the workload token in the backend secret store.
-2. Install `@nexuss0781/accx` for JavaScript/TypeScript or `accx` for Python.
-3. Construct the client in backend code only.
-4. Call `GET /health` or the equivalent health check.
-5. Call the SDK metadata method with the known reference.
-6. Confirm that the metadata is present, active, and suitable for the intended action.
-7. Submit only the reference, action, required scopes, structured input, and a UUID idempotency key.
-8. Poll status until a terminal state.
-
-### Success gate
-
-The application has completed a sanitized metadata read and a permitted job journey. The AI has not received or stored the credential value.
-
-## 2. Metadata-first action selection
-
-Use metadata before submitting a credential-backed action. Check:
-
-| Field | Decision |
-|---|---|
-| `reference` | Use exactly as returned; do not guess or rewrite |
-| `status` | Use only when `active` |
-| `environment` | Match the user’s explicit target environment |
-| `healthStatus` | Do not hide an `attention` or `failed` state |
-| `rotationState` | Do not start work with a known required rotation without user direction |
-| `expiresAt` | Stop or warn when expired or too close to expiry |
-| `deletedAt` | Do not use deleted metadata |
-| `tags` and `aliases` | Use for selection only when the user’s intent is unambiguous |
-
-If multiple references match, ask the user to choose rather than silently selecting a production credential.
-
-## 3. Submit and poll
-
-### Submit
-
-Use `submitAction` or `submit_action` with a new UUID idempotency key for a new logical action. The initial status means:
-
-| Status | Meaning | Next action |
+| Mode | Use when | Authentication |
 |---|---|---|
-| `queued` | Accepted for trusted execution | Poll status |
-| `awaiting_approval` | Human approval is required | Tell the user; do not approve automatically |
-| `running` | Trusted execution has started | Poll status |
-| `succeeded` | Completed successfully | Return sanitized result |
-| `failed` | Execution failed | Report sanitized message; decide whether retry is appropriate |
-| `cancelled` | Cancelled before completion | Stop unless user requests a new action |
+| User-account mode | The AI is acting for a logged-in ACCX user and must record credentials to that user’s account | Session cookie from `register` or `login` |
+| Trusted-service mode | A backend service must use saved references and submit jobs | Protected workload token |
 
-### Polling
+Use user-account mode to create or manage the user’s vault records. Use trusted-service mode to read metadata and execute approved reference-based actions. Do not substitute a workload token for a human session.
 
-Poll with bounded exponential backoff, for example 1, 2, 4, 8, and 16 seconds, with a total deadline appropriate to the action. Do not poll indefinitely. If the deadline expires, report that status is still pending and preserve the job ID for later retrieval.
+## 2. Install ACCX clients
 
-Do not submit a second job while the first is pending unless the user explicitly wants parallel work and the action is safe to duplicate. For a network timeout after submission, reuse the same idempotency key to determine whether the original job was accepted.
+### JavaScript/TypeScript
 
-## 4. Low-risk health check
+```bash
+npm install @nexuss0781/accx
+```
 
-Use `provider.health_check` for a safe in-control-plane check of an active reference.
+### Python
+
+```bash
+python -m pip install accx
+```
+
+Use the package version requested by the application. Verify the installed version before running a release or migration.
+
+## 3. Authenticate through CLI/API
+
+ACCX does not require a separate AI-specific CLI. Use `curl` for direct CLI/API operation or use the published SDK for backend code.
+
+### Register a user
+
+Use a unique email and a password supplied through protected input. Do not put a real password in shell history or a transcript. Prefer a prompt/read mechanism or a secret manager.
+
+```bash
+read -r ACCX_USER_EMAIL
+read -rs ACCX_USER_PASSWORD
+curl -sS -c /tmp/accx-session.cookies -b /tmp/accx-session.cookies \
+  -H 'Content-Type: application/json' \
+  -d "{\"command\":\"register\",\"name\":\"<display name>\",\"email\":\"$ACCX_USER_EMAIL\",\"password\":\"$ACCX_USER_PASSWORD\"}" \
+  "$ACCX_ORIGIN/api/v1/auth"
+unset ACCX_USER_EMAIL ACCX_USER_PASSWORD
+```
+
+### Log in
+
+```bash
+read -r ACCX_USER_EMAIL
+read -rs ACCX_USER_PASSWORD
+curl -sS -c /tmp/accx-session.cookies -b /tmp/accx-session.cookies \
+  -H 'Content-Type: application/json' \
+  -d "{\"command\":\"login\",\"email\":\"$ACCX_USER_EMAIL\",\"password\":\"$ACCX_USER_PASSWORD\"}" \
+  "$ACCX_ORIGIN/api/v1/auth"
+unset ACCX_USER_EMAIL ACCX_USER_PASSWORD
+```
+
+Use a protected cookie jar with restrictive permissions. Do not print the cookie file. Verify the session without exposing cookies:
+
+```bash
+curl -sS -b /tmp/accx-session.cookies \
+  "$ACCX_ORIGIN/api/v1/auth?command=session"
+```
+
+### Trusted-service authentication
+
+The service token is normally supplied by the application environment, not typed into an AI conversation.
+
+```bash
+export ACCX_ORIGIN='https://<your-accx-origin>'
+# ACCX_WORKLOAD_TOKEN must come from the protected backend secret store.
+```
+
+Use it only in the designated header:
+
+```bash
+curl -sS \
+  -H "X-ACCX-Workload-Token: $ACCX_WORKLOAD_TOKEN" \
+  "$ACCX_ORIGIN/api/v1/workloads?command=list_secret_metadata"
+unset ACCX_WORKLOAD_TOKEN
+```
+
+## 4. Record any provider credential to the user account
+
+Use this workflow when the user gives the AI a password, API token, refresh token, client secret, cookie, SSH key, recovery code, or another provider credential and asks to save it.
+
+### Confirm the record destination
+
+Obtain or derive only the non-secret fields:
+
+| Field | Example |
+|---|---|
+| Provider | `github` |
+| Display name | `GitHub production account` |
+| Environment | `production` |
+| Field kind | `api_token`, `password`, `refresh_token`, `client_secret`, `cookie`, `ssh_key`, `recovery_code`, or `custom` |
+| Stable reference | `github.production.account` |
+| Tags | `production`, `engineering` |
+| Aliases | Other non-secret references, if needed |
+
+If the target account or environment is ambiguous, ask one focused question before writing. If it is clear, proceed without asking the user to repeat the credential.
+
+### Create metadata
+
+Use the authenticated user application path for user-owned metadata. Send a fresh timestamp and nonce for every mutation and include same-origin headers.
+
+```bash
+ACCX_NONCE="$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))')"
+ACCX_TIMESTAMP="$(date +%s%3N)"
+curl -sS -b /tmp/accx-session.cookies \
+  -H 'Content-Type: application/json' \
+  -H "Origin: $ACCX_ORIGIN" \
+  -H "Host: $(python3 -c 'from urllib.parse import urlparse; import os; print(urlparse(os.environ["ACCX_ORIGIN"]).netloc)')" \
+  -H "X-ACCX-Request-Timestamp: $ACCX_TIMESTAMP" \
+  -H "X-ACCX-Request-Nonce: $ACCX_NONCE" \
+  -d '{"command":"create_secret_metadata","environmentId":"<environment UUID>","provider":"github","displayName":"GitHub production account","reference":"github.production.account","fieldKind":"api_token","tags":["production"],"aliases":[]}' \
+  "$ACCX_ORIGIN/api/v1/app"
+unset ACCX_NONCE ACCX_TIMESTAMP
+```
+
+The response returns a secret metadata object and its `id`. Save only the metadata ID and reference for the next operation. Do not print the credential value alongside the response.
+
+### Encrypt and activate the value
+
+The value must be encrypted in a trusted backend process before activation. Do not send plaintext to any HTTP endpoint. Use the application’s trusted encryption helper or an equivalent AES-256-GCM envelope-encryption routine:
+
+1. Generate a random 32-byte data key.
+2. Encrypt the data key with the configured ACCX vault key.
+3. Encrypt the supplied credential with the data key.
+4. Submit `{ encryptedDataKey, secretCiphertext, algorithm: "AES-256-GCM" }` to the trusted activation operation.
+5. Clear the plaintext variable, data key, and temporary payload after the request.
+
+The activation endpoint is:
+
+```text
+POST /api/v1/admin?command=activate_secret_version
+```
+
+It requires the protected admin credential and the authenticated user’s audited subject ID in the provisioning process. Do not use this endpoint from browser code or expose the admin credential to the AI’s user-visible output. The activation body is:
+
+```json
+{
+  "secretId": "<metadata UUID>",
+  "encryptedPayload": {
+    "encryptedDataKey": { "ciphertext": "<base64>", "iv": "<base64>", "tag": "<base64>" },
+    "secretCiphertext": { "ciphertext": "<base64>", "iv": "<base64>", "tag": "<base64>" },
+    "algorithm": "AES-256-GCM"
+  }
+}
+```
+
+Do not put real payloads in this skill, shell history, logs, tickets, or AI responses.
+
+### Verify the save
+
+Read metadata through the user session or workload SDK and require:
+
+```text
+reference = requested reference
+status = active
+activeVersion >= 1
+```
+
+Report: “Credential metadata and encrypted active version saved for `<reference>` in `<environment>`.” Do not report the value.
+
+## 5. List and inspect saved accounts
+
+Use the workload SDK/API for trusted backend listing:
+
+```bash
+curl -sS \
+  -H "X-ACCX-Workload-Token: $ACCX_WORKLOAD_TOKEN" \
+  "$ACCX_ORIGIN/api/v1/workloads?command=list_secret_metadata"
+```
+
+Filter the returned metadata by exact reference, provider, environment, tag, alias, status, or health state. If multiple records match the user’s request, ask them to choose. Never select a production record merely because it is the first result.
+
+## 6. Update account organization
+
+For user-owned metadata changes, use the existing authenticated session and fresh mutation headers. Supported changes include tags, aliases, health status, expiry, and other documented metadata fields.
+
+1. Read the current metadata.
+2. Identify the exact metadata ID.
+3. Apply only the requested field changes.
+4. Send a new nonce and timestamp.
+5. Verify the returned metadata and the resulting state.
+6. Clear the JavaScript SDK metadata cache when using the SDK.
+
+Do not treat changing a display label or tag as changing the stored credential.
+
+## 7. Rotate a saved credential
+
+Use when the user explicitly asks to replace or rotate a credential.
+
+1. Read the exact current reference and metadata ID.
+2. Confirm the target environment and provider.
+3. Accept the new credential through protected input.
+4. Encrypt the new value in trusted memory.
+5. Activate a new encrypted version.
+6. Re-read metadata and require a higher `activeVersion` or the documented activation result.
+7. Clear SDK metadata cache.
+8. Report only the new active version and sanitized status.
+
+Do not revoke the old version before the new encrypted version is confirmed active unless the user explicitly requests emergency revocation.
+
+## 8. Use a saved credential for an action
 
 ```ts
+const metadata = await accx.getSecretMetadata(reference);
+if (metadata.status !== "active") throw new Error("Reference is not active");
+
 const result = await accx.submitAction({
   action: "provider.health_check",
-  secretReferences: [reference],
+  secretReferences: [metadata.reference],
   requiredScopes: ["job.execute"],
   input: {},
   idempotencyKey: crypto.randomUUID(),
 });
 ```
 
-The action requires `job.execute`, enters `queued`, and returns a sanitized result. It does not authorize the AI to retrieve the credential or call an arbitrary external provider.
+For Python, use `get_secret_metadata`, `JobSubmission`, and `submit_action` as documented in the SDK reference. Poll with `getJobStatus` or `get_job_status` until terminal status.
 
-## 5. High-impact action
+## 9. Handle approval-required actions
 
-Use `provider.publish` only when the user has explicitly requested the exact publishing action, the reference and target environment are unambiguous, and the configured integration supports the action.
+For `provider.publish`, submit the action only when the user clearly requested it and the reference/environment are unambiguous. The expected initial status is `awaiting_approval`.
 
-1. Confirm the action requires `job.execute` and `provider.publish`.
-2. Submit once with a UUID idempotency key.
-3. Treat `awaiting_approval` as a hard stop for autonomous execution.
-4. Explain what approval is required without revealing the reference’s value.
-5. Do not simulate or bypass human approval.
-6. Continue only after the existing authorized approval flow has changed the job to `queued`.
-7. Poll for a sanitized terminal result.
+Explain the approval requirement and stop. Do not approve it as the AI, bypass the approval flow, or use the admin credential as a substitute. Continue only after the authorized approval process reports that the job is queued.
 
-If the action has no registered provider adapter, report `blocked: provider integration unavailable`. Do not put a destination URL or provider implementation into `input`.
+## 10. Cleanup and verification
 
-## 6. Rotation or expiry response
+After a disposable integration test:
 
-When metadata reports `rotation_required`, an imminent `expiresAt`, `failed` health, or `revoked` status:
+1. Confirm the job reached `succeeded`, `failed`, or `cancelled`.
+2. Revoke the temporary service identity through the authorized provisioning process.
+3. Revoke or remove the temporary test record according to the user’s explicit cleanup instruction.
+4. Delete temporary cookie jars, payload files, and local variables.
+5. Report the job ID, sanitized status, and cleanup result only.
 
-1. Stop new credential-backed actions using that reference unless the user explicitly directs otherwise.
-2. Explain the metadata state without exposing the value.
-3. Ask for or use the documented rotation workflow only when explicitly authorized.
-4. Clear the JavaScript metadata cache after a known update.
-5. Re-read metadata and verify the new active version before submitting a new job.
-6. Do not reuse an old reference if the application has issued a new one.
-
-## 7. Error response
-
-Handle errors by category:
-
-- `401`: stop and use the protected token provisioning path; do not ask the user for a plaintext credential.
-- `403`: explain that scope, ownership, approval, or authorization is missing; do not escalate scopes automatically.
-- `409`: determine whether the request was replayed or conflicted; reuse the idempotency key only for the same logical action.
-- `429`: apply bounded backoff for safe reads or idempotent submissions.
-- `500`: retry only a safe idempotent operation; preserve the job ID if one exists.
-- `503`: stop credential-backed work and report ACCX availability/configuration failure.
-- `failed` job: return the sanitized message and do not expose provider response data.
-
-## 8. End-to-end consumer verification
-
-Use a disposable non-production reference and a temporary workload identity when performing a live verification.
-
-1. Check service health.
-2. Read metadata through the SDK.
-3. Submit `provider.health_check`.
-4. Confirm status `queued`.
-5. Allow the configured trusted worker process to execute the job; the normal AI client does not need worker credentials.
-6. Read status through the SDK.
-7. Confirm `succeeded` and a sanitized message.
-8. Revoke the temporary identity and test fixture through the authorized provisioning process.
-9. Record only package version, job ID, status, and cleanup result.
-
-The verification is `completed` only when the terminal status and cleanup are both confirmed.
-
-## 9. Change boundary
-
-If the user asks to change ACCX’s screens, database, server routes, deployment, human MFA flow, provider adapters, or internal runtime, stop using this consumer skill as an implementation guide. Treat that as a separate ACCX maintenance task. Do not modify internal ACCX code merely to make an AI integration request work.
+A save is complete only after encrypted activation and metadata verification. An action is complete only after a terminal `succeeded` status.

@@ -1,46 +1,90 @@
 ---
 name: accx-control-plane
-description: Integrate AI agents and trusted backend services with ACCX through its reference-only SDK and workload API. Use for installing the ACCX SDKs, reading sanitized secret metadata, submitting and polling safe actions, handling scopes and errors, and completing consumer-side end-to-end verification. Do not use this skill to modify ACCX internal UI, backend, deployment, or operator implementation unless explicitly requested.
+description: Use ACCX as an AI-accessible secure credential vault and action control plane. Follow the complete journey to install and authenticate through CLI/API, accept any provider credential through protected input, record it to the authorized user account with encrypted activation, manage metadata and versions, retrieve by stable reference for trusted actions, use the JavaScript or Python SDK, and verify the result end to end.
 ---
 
-# ACCX AI Integration Skill
+# ACCX AI Operator Skill
 
-## Scope
+## Purpose
 
-Use ACCX as a **secure secret-reference and action-orchestration service**. The AI or application sends a stable secret reference and an intended action to ACCX; ACCX performs authorized server-side work and returns sanitized metadata or job state. The AI must not ask for, reproduce, infer, or store the underlying credential value.
+Use ACCX as the secure place to register, organize, encrypt, rotate, and use credentials on behalf of an authorized user or trusted backend service. The AI may accept a credential through a protected input channel and record it in the user’s ACCX account. It must not echo the value, put it in a URL, write it to ordinary logs, or return it in a response. The value should move directly from protected input to in-memory encryption and then into ACCX’s encrypted storage path.
 
-This skill is for an AI agent integrating with an existing ACCX deployment. It is **not** a guide to rebuilding ACCX, editing its React UI, changing its database schema, operating its Vercel internals, managing human MFA screens, or implementing provider adapters. Do not modify those areas unless the user explicitly changes the task to ACCX maintenance.
+This skill is an **application guide**, not an internal ACCX codebase guide. Operate the existing ACCX API and published SDKs. Do not infer undocumented endpoints or modify platform internals to compensate for a missing API capability.
 
-## Safe-by-default, not restrictive
+## Operating principles
 
-Use ACCX normally for authorized secret-backed work. Do not refuse an operation merely because it involves a credential reference or workload token; that is the intended secure architecture. Keep the workload token in the application’s protected server environment and send it only in the designated header. Keep the underlying credential value inside ACCX’s trusted execution boundary.
+1. **Accept authorized credentials normally.** A credential value is valid input when the user explicitly asks to save, update, rotate, or use it and the input arrives through a protected channel.
+2. **Record to the correct account.** Authenticate the intended user or trusted service first. Confirm the target workspace, project, environment, provider, display name, and stable reference before writing.
+3. **Encrypt before activation.** Send metadata separately, encrypt the value in trusted process memory with the ACCX vault key, and send only the encrypted payload to the activation endpoint.
+4. **Do not echo secret material.** Never print, summarize, quote, attach, persist, or include the credential, token, cookie, passphrase, private key, encrypted payload, or session cookie in an AI answer or ordinary log.
+5. **Use the least surprising action.** Save means create or update the requested record. Retrieve means use the reference inside a trusted action. Check means read metadata or run a health check. Delete, revoke, rotate, publish, or purge requires explicit user intent.
+6. **Use exact references and scopes.** Read metadata first, use the exact reference returned by ACCX, and request only the scope required by the selected action.
+7. **Complete the journey.** Do not call a credential “saved” until the metadata/version activation response succeeds and a metadata read confirms the expected active version.
 
-Ask for clarification only when the requested action, reference, scope, target environment, or destructive intent is genuinely missing. Do not ask the user to paste a plaintext credential when a reference already exists. Do not expose any token, cookie, credential value, or encrypted payload in an answer, log, URL, code example, or model context.
+## Quick workflow: save any credential to a user account
 
-## Consumer decision tree
+Use this path when the user says “save this credential,” “add this account,” “store this token,” or equivalent.
 
-| Need | Use | Do not use |
-|---|---|---|
-| Check service availability | `GET /health` | Database internals or deployment logs |
-| Read a secret’s non-sensitive state | SDK metadata method | Plaintext resolution |
-| Run a low-risk supported action | SDK `submitAction` / `submit_action` | Browser UI or admin key |
-| Track work | SDK job-status method | Reading internal tables |
-| Provision a service identity | Admin-owned provisioning flow, only when explicitly authorized | Browser code or workload token for admin operations |
-| Human login/MFA | The ACCX application’s existing session flow | Reimplementing auth in the AI client |
-| Add a new provider action | Stop and identify the required reviewed adapter | Inventing a URL or adapter in job input |
+1. **Authenticate.** Use a session login for a user account or a workload token for a trusted backend. Use the CLI/API examples in [CLI and API workflows](references/workflows.md).
+2. **Identify the destination.** Resolve the workspace, project, environment, provider, display name, and stable reference. Ask one focused question only if more than one target is possible.
+3. **Create metadata.** Register the record with `create_secret_metadata`. Include the appropriate `fieldKind`, tags, and aliases where supplied.
+4. **Collect the value securely.** Accept the value through protected stdin, a secure tool input, or an application secret field. Do not put it in a command argument, URL, source file, or chat transcript.
+5. **Encrypt in memory.** Use the bundled encryption helper or an equivalent trusted server routine with `ACCX_VAULT_MASTER_KEY`. Do not send plaintext to ACCX.
+6. **Activate the version.** Submit the encrypted payload with `activate_secret_version` through the trusted server-side activation path.
+7. **Verify.** Read metadata through the authenticated SDK or API. Require `status: "active"`, the expected reference, and the expected active version.
+8. **Clear temporary material.** Remove temporary payload files, unset shell variables, close stdin, clear buffers where possible, and never print the encrypted payload.
+9. **Report only sanitized facts.** State provider, environment, reference, active version, and status—not the credential.
 
-## Quick workflow
+## Quick workflow: use a saved credential
 
-1. Obtain the ACCX origin and a workload token through the application’s protected server environment. Never place either in frontend source or user-visible output.
-2. Install the published SDK from the package registry; use [SDK reference](references/sdk-reference.md).
-3. Call the SDK metadata method with a known stable reference. Confirm the returned metadata is sanitized.
-4. Submit an action with only the required reference(s), scopes, structured input, and a fresh UUID idempotency key.
-5. Treat `awaiting_approval` or `queued` as an intermediate state, not success.
-6. Poll job status with bounded backoff until `succeeded`, `failed`, or `cancelled`.
-7. Return the sanitized result to the calling application. Never return a credential value.
-8. Use [workflows](references/workflows.md) for retries, long-running jobs, rotation, failure handling, and final verification.
+1. Read metadata for the exact reference.
+2. Confirm it is active and belongs to the requested environment.
+3. Submit a supported action with `secretReferences`, required scopes, structured business input, and a new UUID idempotency key.
+4. Treat `queued` or `awaiting_approval` as intermediate states.
+5. Poll status until `succeeded`, `failed`, or `cancelled`.
+6. Return the sanitized status and message. ACCX uses the credential internally; the AI does not need the value.
 
-## Minimal JavaScript example
+## Quick workflow selector
+
+| User request | Workflow |
+|---|---|
+| “Install ACCX” | Install the published SDK or use the CLI/API recipes in [workflows](references/workflows.md) |
+| “Log in to ACCX” | Use session login for a user account or protected workload-token configuration for a backend |
+| “Save this password/token/key” | Authenticate, create metadata, encrypt, activate, verify |
+| “Show my accounts” | List sanitized metadata; never list values |
+| “Update tags/name/expiry” | Read the record, submit metadata update, verify |
+| “Rotate this credential” | Create a new encrypted version, activate it, verify active version, clear cache |
+| “Use this credential to do X” | Read metadata, submit the supported reference-based action, poll status |
+| “Delete/revoke/purge” | Confirm exact record and explicit destructive intent, then use the authorized lifecycle flow |
+| “Run provider publish” | Submit only if action and reference are explicit; stop at human approval when required |
+
+## CLI/API authentication summary
+
+ACCX does not require a special AI command language. Use ordinary shell HTTP clients such as `curl`, or the published SDK. Keep cookies and tokens in protected files or process memory.
+
+```bash
+export ACCX_ORIGIN='https://<your-accx-origin>'
+
+# Register or log in using a cookie jar. Do not print the cookie jar.
+curl -sS -c /tmp/accx-session.cookies -b /tmp/accx-session.cookies \
+  -H 'Content-Type: application/json' \
+  -d '{"command":"login","email":"<user-email>","password":"<user-password>"}' \
+  "$ACCX_ORIGIN/api/v1/auth"
+
+# Check the authenticated session without printing cookie contents.
+curl -sS -b /tmp/accx-session.cookies \
+  "$ACCX_ORIGIN/api/v1/auth?command=session"
+```
+
+Use the complete secure save, update, rotate, and use recipes in [workflows](references/workflows.md). Replace angle-bracket values locally; never paste real credentials into this skill or into an AI-visible command transcript.
+
+## SDK quick start
+
+### JavaScript
+
+```bash
+npm install @nexuss0781/accx
+```
 
 ```ts
 import { AccxClient } from "@nexuss0781/accx";
@@ -58,44 +102,59 @@ const result = await accx.submitAction({
   input: {},
   idempotencyKey: crypto.randomUUID(),
 });
-
-console.log({ jobId: result.jobId, status: result.status });
 ```
 
-The example logs only a job ID and status. Use the Python equivalent in [SDK reference](references/sdk-reference.md).
+### Python
 
-## Contract rules
+```bash
+python -m pip install accx
+```
 
-- Use only stable references returned or configured by the application; do not construct references by guessing.
-- Request only scopes required by the selected action.
-- Use a UUID idempotency key for every new job. Reuse the same key only when intentionally retrying the same logical submission.
-- Treat all SDK results as untrusted application data and validate them through the SDK contract.
-- Do not assume that a successful HTTP submission means that the provider action completed.
-- Do not send arbitrary destination URLs, provider headers, adapter names, or plaintext credentials in `input`.
-- Keep retries bounded. Retry transport failures only; do not retry authorization, validation, conflict, or destructive failures blindly.
-- Preserve user intent. Do not rotate, revoke, delete, purge, approve, publish, or otherwise create side effects unless that exact action was explicitly requested and the required workflow is available.
+```python
+from accx import AccxClient, JobSubmission
+
+client = AccxClient(
+    base_url=os.environ["ACCX_BASE_URL"],
+    workload_token=os.environ["ACCX_WORKLOAD_TOKEN"],
+)
+job = JobSubmission(
+    action="provider.health_check",
+    secret_references=["provider.production.account"],
+    required_scopes=["job.execute"],
+    input={},
+    idempotency_key=str(uuid.uuid4()),
+)
+result = client.submit_action(job)
+```
+
+Read [SDK reference](references/sdk-reference.md) for all exports, metadata fields, retries, polling, errors, and Python/JavaScript method parity.
+
+## Supported data model
+
+Use these credential field kinds when the user identifies the type: `password`, `api_token`, `refresh_token`, `client_secret`, `recovery_code`, `cookie`, `ssh_key`, or `custom`. Any provider can use `custom` when no narrower kind is appropriate.
+
+Stable references use lowercase letters, digits, dots, hyphens, and underscores. Use a descriptive pattern such as `github.production.account` or `aws.staging.deploy_key`; do not encode the credential value in the reference.
 
 ## Completion states
 
-Use precise status labels in reports:
+Use exact states in the final response:
 
 | State | Meaning |
 |---|---|
-| `configured` | Origin and protected workload-token wiring are present |
-| `package-installed` | Published SDK installed successfully in a clean environment |
-| `metadata-verified` | Sanitized metadata was retrieved and validated |
-| `submitted` | ACCX accepted the job request |
-| `completed` | Job reached a terminal success state |
-| `failed` | ACCX or the provider reported a sanitized failure |
-| `blocked` | Required scope, reference, adapter, approval, credential, or user intent is missing |
+| `authenticated` | User session or workload token is valid |
+| `metadata-created` | The account record exists but no active encrypted version is confirmed |
+| `active` | Encrypted version activation succeeded and metadata confirms the record is active |
+| `metadata-verified` | Sanitized metadata was read successfully |
+| `submitted` | ACCX accepted an action |
+| `completed` | The action reached `succeeded` |
+| `blocked` | A required target, scope, approval, adapter, or explicit intent is missing |
+| `failed` | ACCX returned a sanitized failure |
 
-Do not call an integration complete when it only reaches `submitted` or when the action has no registered provider adapter.
+Never report a credential as saved when the state is only `metadata-created`.
 
 ## Detailed references
 
-Read only the reference needed for the current consumer task:
-
-- **[SDK reference](references/sdk-reference.md):** Published JavaScript, browser metadata, and Python client surfaces, methods, contracts, errors, retries, and clean-install checks.
-- **[API reference](references/api-reference.md):** AI-consumer health, workload, job, provisioning, status, error, and response contracts.
-- **[Workflows](references/workflows.md):** Common integration sequences, polling, idempotency, rotation, failures, and end-to-end verification.
-- **[Consumer safety](references/consumer-safety.md):** Secret handling, scope selection, action boundaries, user intent, logging, and what the AI must never implement or expose.
+- **[Workflows](references/workflows.md):** CLI/API authentication, credential intake, encryption/activation, account management, rotation, reference-based use, polling, cleanup, and troubleshooting.
+- **[API reference](references/api-reference.md):** Consumer and trusted activation endpoints, exact methods, headers, payloads, responses, scopes, and errors.
+- **[SDK reference](references/sdk-reference.md):** Published JavaScript and Python packages, constructors, methods, contracts, retries, redaction, and examples.
+- **[Consumer safety](references/consumer-safety.md):** Practical handling of credential input, user intent, secure temporary storage, reporting, and destructive actions.
