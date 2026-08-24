@@ -1,127 +1,101 @@
 ---
 name: accx-control-plane
-description: Operate, integrate, test, secure, deploy, publish, and document the ACCX reference-only credential control plane. Use for ACCX API or SDK work, human authentication, secret metadata lifecycle, workload identities, job orchestration, worker execution, Vercel deployment, package publication, production diagnosis, and end-to-end verification.
+description: Integrate AI agents and trusted backend services with ACCX through its reference-only SDK and workload API. Use for installing the ACCX SDKs, reading sanitized secret metadata, submitting and polling safe actions, handling scopes and errors, and completing consumer-side end-to-end verification. Do not use this skill to modify ACCX internal UI, backend, deployment, or operator implementation unless explicitly requested.
 ---
 
-# ACCX Control Plane
+# ACCX AI Integration Skill
 
-## Mission
+## Scope
 
-Treat ACCX as a **reference-only credential control plane**. Use stable secret references, encrypted server-side values, scoped identities, short-lived workload tokens, approval-gated actions, and sanitized results. Never return, log, copy, persist, place in a URL, or expose a plaintext credential to a browser, SDK consumer, audit record, worker, or model.
+Use ACCX as a **secure secret-reference and action-orchestration service**. The AI or application sends a stable secret reference and an intended action to ACCX; ACCX performs authorized server-side work and returns sanitized metadata or job state. The AI must not ask for, reproduce, infer, or store the underlying credential value.
 
-Use this skill to move from the shortest correct workflow to the complete API and production journey. Do not invent endpoints, commands, scopes, response fields, or security exceptions. Read the linked reference that matches the requested operation before changing or invoking it.
+This skill is for an AI agent integrating with an existing ACCX deployment. It is **not** a guide to rebuilding ACCX, editing its React UI, changing its database schema, operating its Vercel internals, managing human MFA screens, or implementing provider adapters. Do not modify those areas unless the user explicitly changes the task to ACCX maintenance.
 
-## Non-negotiable rules
+## Safe-by-default, not restrictive
 
-1. **Never expose secrets.** Do not print, attach, commit, paste, or echo `DATABASE_URL`, `ACCX_VAULT_MASTER_KEY`, `ACCX_ADMIN_KEY`, `ACCX_WORKER_KEY`, workload tokens, registry tokens, session cookies, encrypted payloads, or `.env` files. Redact command output before reporting it.
-2. **Keep authorization server-side.** Never trust a client-supplied scope, project, destination URL, approval state, actor ID, or worker identity. The server resolves identity, membership, scope, lease, policy, and ownership.
-3. **Use the correct credential for the actor.** Human browser actions use an HttpOnly session cookie. Admin control-plane actions use `X-ACCX-Admin-Key`. Workload clients use `X-ACCX-Workload-Token`. Workers use `X-ACCX-Worker-Key`. Never substitute one credential class for another.
-4. **Use references, not values.** SDK job requests contain `secretReferences`; metadata responses may contain references and lifecycle fields, never credential values.
-5. **Require step-up for destructive human mutations.** Sensitive browser operations need recent MFA/passkey step-up plus fresh mutation timestamp, nonce, same-origin, rate-limit, and replay checks.
-6. **Preserve capabilities during consolidation.** Keep the six Vercel entrypoints and route capabilities. Add or change a `command` mapping rather than creating a new serverless function unless the deployment limit is explicitly reconsidered.
-7. **Do not claim end-to-end completion from unit tests alone.** Separate implemented, locally validated, package-installed, live API-verified, and credentialed production-verified status.
-8. **Treat provider adapters as reviewed server code.** Do not let job input supply an adapter, destination, raw headers, or plaintext. Require HTTPS, a server-owned origin allowlist, no redirects, abort support, and sanitized results. If no adapter is registered for an action, report that action as incomplete rather than pretending it executed.
+Use ACCX normally for authorized secret-backed work. Do not refuse an operation merely because it involves a credential reference or workload token; that is the intended secure architecture. Keep the workload token in the application’s protected server environment and send it only in the designated header. Keep the underlying credential value inside ACCX’s trusted execution boundary.
 
-## Quick workflow selector
+Ask for clarification only when the requested action, reference, scope, target environment, or destructive intent is genuinely missing. Do not ask the user to paste a plaintext credential when a reference already exists. Do not expose any token, cookie, credential value, or encrypted payload in an answer, log, URL, code example, or model context.
 
-Choose exactly one path before acting:
+## Consumer decision tree
 
-| Request | Start here | Stop condition |
+| Need | Use | Do not use |
 |---|---|---|
-| Understand the API | Read [API reference](references/api-reference.md) | Command, method, auth, input, output, and error are identified |
-| Integrate a backend service | Read [SDK reference](references/sdk-reference.md), then the workload journey in [journeys](references/journeys.md) | Token, metadata, submit, status, and retry behavior are implemented |
-| Build a browser feature | Read browser/auth and app sections in [API reference](references/api-reference.md) | Session, same-origin, step-up, nonce, and zero-plaintext rules are satisfied |
-| Add a secret or rotate metadata | Read the metadata lifecycle section in [API reference](references/api-reference.md) | Correct environment, version, scope, encryption, audit, and cleanup are verified |
-| Run a job | Read orchestration and worker sections in [API reference](references/api-reference.md) | Policy, scopes, leases, approval, worker claim, adapter, timeout, and sanitized status are verified |
-| Deploy or diagnose Vercel | Read [operations reference](references/security-operations.md) | Build, function count, runtime assets, environment, live health, and logs are verified |
-| Publish an SDK | Read publication section in [security and operations](references/security-operations.md) | Versioned artifacts are checked, published, clean-installed, and smoke-tested |
-| Perform a full audit | Read all three references in order: SDK, API, journeys/operations | Every claimed phase is labeled with evidence and remaining gaps |
+| Check service availability | `GET /health` | Database internals or deployment logs |
+| Read a secret’s non-sensitive state | SDK metadata method | Plaintext resolution |
+| Run a low-risk supported action | SDK `submitAction` / `submit_action` | Browser UI or admin key |
+| Track work | SDK job-status method | Reading internal tables |
+| Provision a service identity | Admin-owned provisioning flow, only when explicitly authorized | Browser code or workload token for admin operations |
+| Human login/MFA | The ACCX application’s existing session flow | Reimplementing auth in the AI client |
+| Add a new provider action | Stop and identify the required reviewed adapter | Inventing a URL or adapter in job input |
 
-## Common quick workflows
+## Quick workflow
 
-### Query production health
+1. Obtain the ACCX origin and a workload token through the application’s protected server environment. Never place either in frontend source or user-visible output.
+2. Install the published SDK from the package registry; use [SDK reference](references/sdk-reference.md).
+3. Call the SDK metadata method with a known stable reference. Confirm the returned metadata is sanitized.
+4. Submit an action with only the required reference(s), scopes, structured input, and a fresh UUID idempotency key.
+5. Treat `awaiting_approval` or `queued` as an intermediate state, not success.
+6. Poll job status with bounded backoff until `succeeded`, `failed`, or `cancelled`.
+7. Return the sanitized result to the calling application. Never return a credential value.
+8. Use [workflows](references/workflows.md) for retries, long-running jobs, rotation, failure handling, and final verification.
 
-1. Request `GET /health`.
-2. Require HTTP `200`.
-3. Require JSON `status: "ok"` and `dependencies.database: "ok"`.
-4. If the response is degraded, classify only the bounded non-secret error and do not report the service healthy.
-5. Also request `GET /api/health` when verifying the rewrite or function directly.
+## Minimal JavaScript example
 
-```bash
-curl -fsS --max-time 30 https://<accx-origin>/health
-curl -fsS --max-time 30 https://<accx-origin>/api/health
+```ts
+import { AccxClient } from "@nexuss0781/accx";
+
+const accx = new AccxClient({
+  baseUrl: process.env.ACCX_BASE_URL!,
+  workloadToken: process.env.ACCX_WORKLOAD_TOKEN!,
+});
+
+const metadata = await accx.getSecretMetadata("provider.production.account");
+const result = await accx.submitAction({
+  action: "provider.health_check",
+  secretReferences: [metadata.reference],
+  requiredScopes: ["job.execute"],
+  input: {},
+  idempotencyKey: crypto.randomUUID(),
+});
+
+console.log({ jobId: result.jobId, status: result.status });
 ```
 
-### Integrate a trusted backend
+The example logs only a job ID and status. Use the Python equivalent in [SDK reference](references/sdk-reference.md).
 
-1. Provision a service identity with only required scopes.
-2. Provision a short-lived workload token and place it directly in the service secret store.
-3. List metadata using `X-ACCX-Workload-Token`.
-4. Submit a job containing an action, stable references, required scopes, input object, and UUID idempotency key.
-5. Poll `job_status` using the same workload token.
-6. Never print the token or provider result.
+## Contract rules
 
-Use [SDK reference](references/sdk-reference.md) for JavaScript and Python method names and [journeys](references/journeys.md) for the complete sequence.
+- Use only stable references returned or configured by the application; do not construct references by guessing.
+- Request only scopes required by the selected action.
+- Use a UUID idempotency key for every new job. Reuse the same key only when intentionally retrying the same logical submission.
+- Treat all SDK results as untrusted application data and validate them through the SDK contract.
+- Do not assume that a successful HTTP submission means that the provider action completed.
+- Do not send arbitrary destination URLs, provider headers, adapter names, or plaintext credentials in `input`.
+- Keep retries bounded. Retry transport failures only; do not retry authorization, validation, conflict, or destructive failures blindly.
+- Preserve user intent. Do not rotate, revoke, delete, purge, approve, publish, or otherwise create side effects unless that exact action was explicitly requested and the required workflow is available.
 
-### Change a browser-owned secret record
+## Completion states
 
-1. Use the authenticated session cookie.
-2. Send `Origin` matching the HTTPS host and a fresh `X-ACCX-Request-Timestamp` plus unique `X-ACCX-Request-Nonce`.
-3. Use metadata-only fields for ordinary updates.
-4. Require recent step-up for soft delete, revoke, purge, and job approval.
-5. Expect sanitized JSON and audit recording.
-
-Do not call admin or worker APIs from browser code.
-
-### Publish an SDK
-
-1. Confirm the package name and increment both SDK versions to a new immutable version.
-2. Build the JavaScript package and run `npm pack --dry-run`.
-3. Build the Python wheel and run `twine check`.
-4. Inspect file lists for secrets, local databases, `.env` files, fixtures, or credentials.
-5. Run API checks, SDK checks, lint, tests, build, and `git diff --check`.
-6. Publish only with explicitly authorized registry credentials supplied through a transient secure mechanism.
-7. Install the exact version from a clean Node project and Python virtual environment.
-8. Run metadata-only and sanitized-result smoke tests.
-9. Record package names, versions, commit, publication status, and test evidence without recording tokens.
-
-## Deterministic implementation rules
-
-Use the repository’s six function entrypoints:
-
-```text
-/api/health.ts
-/api/v1/auth.ts
-/api/v1/app.ts
-/api/v1/admin.ts
-/api/v1/workloads.ts
-/api/v1/worker.ts
-```
-
-Route subcommands through the shared dispatcher. Keep request validation in the server handler, database access in the control-plane adapter, authorization in the shared helpers, and provider egress in reviewed adapters. Keep the Vercel runtime self-contained; do not rely on pnpm symlink tracing or postinstall mutation for required runtime assets.
-
-When editing code, update the relevant regression test in the same change. For a new command, add route mapping, method validation, payload schema, authorization test, error mapping, and a safe end-to-end fixture or explicitly document why live execution is unavailable.
-
-## Completion rubric
-
-Report each capability using one of these exact states:
+Use precise status labels in reports:
 
 | State | Meaning |
 |---|---|
-| `implemented` | Source and route exist; no runtime proof yet |
-| `locally-validated` | Type, lint, unit, build, or local database evidence exists |
-| `package-verified` | Published artifact was installed from its registry and smoke-tested |
-| `live-verified` | Deployed endpoint returned the expected sanitized result |
-| `credentialed-e2e-verified` | A controlled identity/token/fixture/worker journey completed and was cleaned up |
-| `blocked` | A specific missing adapter, credential, fixture, deployment, or external dependency prevents proof |
+| `configured` | Origin and protected workload-token wiring are present |
+| `package-installed` | Published SDK installed successfully in a clean environment |
+| `metadata-verified` | Sanitized metadata was retrieved and validated |
+| `submitted` | ACCX accepted the job request |
+| `completed` | Job reached a terminal success state |
+| `failed` | ACCX or the provider reported a sanitized failure |
+| `blocked` | Required scope, reference, adapter, approval, credential, or user intent is missing |
 
-Do not label the entire SDK ecosystem complete when package publication, workload-token execution, worker execution, or provider adapters remain unverified. Use [journeys](references/journeys.md) to list the exact phase that remains.
+Do not call an integration complete when it only reaches `submitted` or when the action has no registered provider adapter.
 
-## Reference navigation
+## Detailed references
 
-Read references directly from this file; do not search for undocumented behavior:
+Read only the reference needed for the current consumer task:
 
-- **[SDK reference](references/sdk-reference.md):** JavaScript, browser, and Python exports, constructors, methods, contracts, retries, redaction, packaging, and parity.
-- **[API reference](references/api-reference.md):** All six entrypoints, every command, methods, headers, inputs, outputs, scopes, status codes, and error rules.
-- **[Journeys](references/journeys.md):** Human, metadata, identity, workload, approval, worker, provider, package, and verification sequences with gates.
-- **[Security and operations](references/security-operations.md):** Zero-plaintext rules, encryption, deployment, Vercel limits, runtime diagnosis, release checks, and publication procedure.
+- **[SDK reference](references/sdk-reference.md):** Published JavaScript, browser metadata, and Python client surfaces, methods, contracts, errors, retries, and clean-install checks.
+- **[API reference](references/api-reference.md):** AI-consumer health, workload, job, provisioning, status, error, and response contracts.
+- **[Workflows](references/workflows.md):** Common integration sequences, polling, idempotency, rotation, failures, and end-to-end verification.
+- **[Consumer safety](references/consumer-safety.md):** Secret handling, scope selection, action boundaries, user intent, logging, and what the AI must never implement or expose.

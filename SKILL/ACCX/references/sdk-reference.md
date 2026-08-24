@@ -1,19 +1,17 @@
-# ACCX SDK Reference
+# ACCX SDK Reference for AI Consumers
 
-## Purpose and boundary
+## Purpose
 
-Use the SDKs from trusted backend services to submit reference-based actions and read sanitized metadata or job state. Do not use either server SDK as a credential retrieval library. Do not add a plaintext resolver, password getter, clipboard method, browser export method, or raw provider-result method.
+Use the ACCX SDK from a trusted backend service to read sanitized secret metadata, submit an intended action using stable secret references, and read sanitized job status. The SDK is not a credential-value retrieval library. The secure design is to let ACCX keep and use the value while the AI receives only metadata or a sanitized result.
 
-The current package names are:
+| Ecosystem | Package | Published package |
+|---|---|---|
+| JavaScript/TypeScript | `@nexuss0781/accx` | [NPM package](https://www.npmjs.com/package/@nexuss0781/accx) |
+| Python | `accx` | [PyPI package](https://pypi.org/project/accx/) |
 
-| Ecosystem | Package | Current release |
-|---|---|---:|
-| JavaScript | `@nexuss0781/accx` | `0.1.1` |
-| Python | `accx` | `0.1.1` |
+## JavaScript/TypeScript
 
-## JavaScript SDK
-
-### Installation and import
+### Install and import
 
 ```bash
 npm install @nexuss0781/accx
@@ -21,43 +19,46 @@ npm install @nexuss0781/accx
 
 ```ts
 import { AccxClient, AccxError, redactAccxValue } from "@nexuss0781/accx";
-import { AccxBrowserMetadataClient } from "@nexuss0781/accx/browser";
 ```
 
-The package exports ESM JavaScript, TypeScript declarations, and a browser subpath. It requires Node 18 or later for the server SDK.
-
-### Constructor
+### Construct the client
 
 ```ts
-const client = new AccxClient({
+const accx = new AccxClient({
   baseUrl: process.env.ACCX_BASE_URL!,
   workloadToken: process.env.ACCX_WORKLOAD_TOKEN!,
-  fetch,                 // optional replacement for tests or a custom runtime
-  timeoutMs: 15_000,     // optional; bounded by the SDK
-  maxRetries: 2,         // optional; bounded by the SDK
-  retryBaseMs: 250,      // optional backoff base
 });
 ```
 
-Keep `workloadToken` in a server-side secret store. Never pass it to browser code, logs, URLs, telemetry, or model context.
+Keep the workload token in the trusted backend’s protected environment. The AI may call the SDK through the application, but must not reveal the token in output, prompts, URLs, logs, telemetry, or frontend code.
 
-### Methods
+Optional settings include a custom `fetch` implementation for tests, `timeoutMs`, `maxRetries`, and `retryBaseMs`. Use bounded values.
 
-#### `submitAction(job)`
+### `getSecretMetadata(reference)`
 
-Submit a trusted action to `POST /api/v1/workloads?command=submit_job` with the `X-ACCX-Workload-Token` header.
+Read sanitized metadata for one stable reference.
 
 ```ts
-const result = await client.submitAction({
+const metadata = await accx.getSecretMetadata("provider.production.account");
+```
+
+The returned object may include provider, display name, reference, environment, status, active version, rotation state, expiry, health status, tags, aliases, and timestamps. It does not include the credential value. Successful results are cached by reference; call `clearMetadataCache()` after a known rotation or metadata update.
+
+### `submitAction(job)`
+
+Submit an action using references rather than credential values.
+
+```ts
+const result = await accx.submitAction({
   action: "provider.health_check",
-  secretReferences: ["github.production.token"],
+  secretReferences: ["provider.production.account"],
   requiredScopes: ["job.execute"],
   input: {},
   idempotencyKey: crypto.randomUUID(),
 });
 ```
 
-The method validates the job before sending it and returns only:
+The sanitized result is:
 
 ```ts
 {
@@ -69,166 +70,128 @@ The method validates the job before sending it and returns only:
 }
 ```
 
-Do not assume submission means execution. `provider.publish` normally returns `awaiting_approval`; `provider.health_check` can return `queued`.
+A successful HTTP submission is not the same as completed execution.
 
-#### `getJobStatus(jobId)`
+### `getJobStatus(jobId)`
 
-Read `GET /api/v1/workloads?command=job_status&jobId=<UUID>` using the workload token. The SDK validates that `jobId` is a UUID and returns a `SanitizedJobResult`.
-
-```ts
-const status = await client.getJobStatus(jobId);
-```
-
-#### `getSecretMetadata(reference)`
-
-Read `GET /api/v1/workloads?command=list_secret_metadata` and select the requested stable reference from `{ secrets: SecretMetadata[] }`. The SDK validates metadata and caches successful results by reference.
+Read the sanitized status of a job owned by the workload identity.
 
 ```ts
-const metadata = await client.getSecretMetadata("github.production.token");
-console.log(metadata.status, metadata.activeVersion, metadata.healthStatus);
+const status = await accx.getJobStatus(result.jobId);
 ```
 
-This method never returns the credential value.
+Stop polling when the status is `succeeded`, `failed`, or `cancelled`.
 
-#### `clearMetadataCache()`
+### `redactAccxValue(value)`
 
-Clear the in-memory metadata cache after a rotation or deployment notification.
-
-#### `redactAccxValue(value)`
-
-Return a log-safe copy. Use it before writing ACCX data to logs, traces, audit-adjacent diagnostics, or error reports. Secret-shaped keys and string values are redacted.
-
-### Retries, timeout, and errors
-
-The SDK retries only transient transport responses: network failures, HTTP 408, HTTP 429, and HTTP 5xx responses. Retry attempts and delay are bounded. It must not retry arbitrary validation failures, authorization failures, conflicts, or destructive mutations unless the operation is idempotent and the server contract allows it.
-
-`AccxError` exposes a sanitized status and a `retryable` flag. Do not serialize the original response body if it may contain provider or credential material.
-
-## Browser SDK
-
-### Import and method
+Use before logging an object that could contain secret-shaped fields.
 
 ```ts
-import { AccxBrowserMetadataClient } from "@nexuss0781/accx/browser";
-
-const browserClient = new AccxBrowserMetadataClient();
-const secrets = await browserClient.listMetadata();
+const safe = redactAccxValue({
+  reference: "provider.production.account",
+  token: "never-log-this",
+});
 ```
 
-`listMetadata()` calls same-origin `GET /api/v1/app?command=bootstrap` with browser credentials and extracts only the validated `secrets` metadata array.
+### Errors and retries
 
-The browser SDK intentionally has no workload-token constructor and no method for:
+`AccxError` exposes sanitized status and retryability. The SDK retries only transient network failures, HTTP 408, HTTP 429, and HTTP 5xx responses, using bounded attempts and delay. Do not retry authorization, validation, conflicts, approvals, revocations, or other side effects blindly.
 
-- Resolving plaintext.
-- Downloading a credential.
-- Copying a credential to the clipboard.
-- Exporting raw credentials.
-- Persisting secret values to local storage.
-- Submitting privileged admin or worker operations.
+## Python
 
-Use the browser SDK only for session-authenticated metadata display.
-
-## Python SDK
-
-### Installation and import
+### Install and import
 
 ```bash
 python -m pip install accx
 ```
 
 ```python
-from accx import (
-    AccxClient,
-    AsyncAccxClient,
-    AccxError,
-    JobSubmission,
-    SanitizedJobResult,
-    SecretMetadata,
-    redact,
-)
+from accx import AccxClient, AsyncAccxClient, AccxError, JobSubmission, redact
 ```
 
 ### Synchronous client
 
 ```python
+import os
+from accx import AccxClient, JobSubmission
+
 client = AccxClient(
     base_url=os.environ["ACCX_BASE_URL"],
     workload_token=os.environ["ACCX_WORKLOAD_TOKEN"],
 )
 
+job = JobSubmission(
+    action="provider.health_check",
+    secret_references=["provider.production.account"],
+    required_scopes=["job.execute"],
+    input={},
+    idempotency_key="00000000-0000-4000-8000-000000000001",
+)
 result = client.submit_action(job)
 status = client.get_job_status(result.job_id)
-metadata = client.get_secret_metadata("github.production.token")
+metadata = client.get_secret_metadata("provider.production.account")
 ```
-
-The synchronous methods are:
-
-| Method | Endpoint | Result |
-|---|---|---|
-| `submit_action(job)` | `POST /api/v1/workloads?command=submit_job` | `SanitizedJobResult` |
-| `get_job_status(job_id)` | `GET /api/v1/workloads?command=job_status` | `SanitizedJobResult` |
-| `get_secret_metadata(reference)` | `GET /api/v1/workloads?command=list_secret_metadata` | `SecretMetadata` |
 
 ### Asynchronous client
 
 ```python
+from accx import AsyncAccxClient
+
 client = AsyncAccxClient(
     base_url=os.environ["ACCX_BASE_URL"],
     workload_token=os.environ["ACCX_WORKLOAD_TOKEN"],
 )
-
 result = await client.submit_action(job)
 status = await client.get_job_status(result.job_id)
-metadata = await client.get_secret_metadata("github.production.token")
+metadata = await client.get_secret_metadata("provider.production.account")
 ```
 
-`AsyncAccxClient` provides asynchronous versions of the same three operations. The implementation delegates blocking HTTP work safely rather than exposing a separate wire contract.
+Both clients expose the same three operations:
 
-### Python models
+| Method | Purpose | Return type |
+|---|---|---|
+| `submit_action(job)` | Submit a reference-only action | `SanitizedJobResult` |
+| `get_job_status(job_id)` | Read sanitized status | `SanitizedJobResult` |
+| `get_secret_metadata(reference)` | Read sanitized metadata | `SecretMetadata` |
 
-`JobSubmission` contains `action`, `secret_references`, `required_scopes`, `input`, and `idempotency_key`. Its wire representation uses the server’s camelCase keys: `secretReferences`, `requiredScopes`, and `idempotencyKey`.
+The package also exports `AccxError`, `JobSubmission`, `SanitizedJobResult`, `SecretMetadata`, `redact`, `client_from_environment`, and `fastapi_client_dependency`.
 
-`SanitizedJobResult` contains `job_id`, `status`, `message`, and `completed_at`.
+Python `JobSubmission` uses snake_case fields and emits the server’s camelCase wire keys: `secretReferences`, `requiredScopes`, and `idempotencyKey`.
 
-`SecretMetadata` contains provider, display name, reference, environment, lifecycle state, version, rotation, health, tags, aliases, and timestamps. Extend it when the server adds metadata fields; do not add plaintext fields.
+## Shared job contract
 
-`redact(value)` recursively replaces strings and secret-shaped dictionary fields with `[redacted]` for safe logging.
+A job contains:
 
-### Environment and FastAPI helpers
+| Field | Rule |
+|---|---|
+| `action` | Use a documented supported action; 3–100 characters |
+| `secretReferences` / `secret_references` | 1–10 known stable references |
+| `requiredScopes` / `required_scopes` | 1–10 known scopes required by the action |
+| `input` | JSON object; never place credentials, arbitrary URLs, raw headers, or adapter code inside it |
+| `idempotencyKey` / `idempotency_key` | UUID; reuse only to retry the same logical submission |
 
-Use `client_from_environment()` for a backend process that already has `ACCX_BASE_URL` and `ACCX_WORKLOAD_TOKEN`. Use `fastapi_client_dependency()` to provide a client factory without importing FastAPI inside the SDK.
+Supported scopes are `metadata.read`, `secret.rotate`, `provider.publish`, `job.execute`, `audit.read`, and `identity.manage`. Request the smallest set that matches the action.
 
-## Shared contract
+Current action policies:
 
-Supported scopes are:
+| Action | Required scopes | Initial state |
+|---|---|---|
+| `provider.health_check` | `job.execute` | `queued` |
+| `provider.publish` | `job.execute`, `provider.publish` | `awaiting_approval` |
 
-```text
-metadata.read
-secret.rotate
-provider.publish
-job.execute
-audit.read
-identity.manage
-```
+`provider.health_check` is the safe built-in control-plane health action. `provider.publish` requires a separately configured reviewed provider adapter and human approval; do not claim it works merely because the SDK accepts the action name.
 
-A job must contain 1–10 valid stable secret references, 1–10 known scopes, an action between 3 and 100 characters, an object input, and a UUID idempotency key. The current supported server action policies are:
+## What the SDK does not expose
 
-| Action | Required scopes | Approval | Timeout |
-|---|---|---:|---:|
-| `provider.health_check` | `job.execute` | No | 10 seconds |
-| `provider.publish` | `job.execute`, `provider.publish` | Yes | 30 seconds |
+The AI-facing SDK has no plaintext resolver, password getter, clipboard operation, raw provider response, arbitrary provider destination, internal database query, user-interface mutation API, or deployment operation. Do not add these methods as a shortcut. If a required capability is absent, identify the missing reviewed integration rather than bypassing the reference-only boundary.
 
-## SDK verification workflow
+## SDK verification
 
-1. Build the JavaScript SDK with `tsc -p packages/sdk-js/tsconfig.json`.
-2. Build the Python wheel from `packages/sdk-python`.
-3. Run `twine check` on Python artifacts.
-4. Run the project API, SDK, lint, test, build, and diff checks.
-5. Run a JavaScript smoke test from a clean temporary Node project installed from NPM.
-6. Run a Python smoke test from a clean virtual environment installed from PyPI.
-7. Verify that tests use fake fetchers or a disposable non-production fixture and never print tokens.
-8. For live verification, use a short-lived workload identity and revoke it after the journey.
+For a package release or integration change:
 
-## Publication caveats
-
-NPM and PyPI archives are immutable. Publish a corrected later version rather than attempting to alter an existing archive. Before publishing, inspect the exact file list and reject any artifact containing `.env` files, local databases, encrypted fixtures, registry credentials, workload tokens, or provider credentials.
+1. Install the exact package version in a clean Node project or Python virtual environment.
+2. Import the public exports.
+3. Exercise metadata, sanitized job, retry, timeout, and redaction behavior with fake transport or a disposable non-production fixture.
+4. Run one controlled live journey only when a temporary workload token and safe reference are available.
+5. Revoke temporary identities and fixtures after the live journey.
+6. Report package version and sanitized outcomes, never credentials.
