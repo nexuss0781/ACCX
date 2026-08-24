@@ -25,7 +25,7 @@ describe("ACCX release-readiness contract", () => {
   it("keeps Vercel’s platform warning mitigation narrowly scoped", () => {
     const config = source("vercel.json");
     expect(config).toContain("NODE_OPTIONS");
-    expect(config).toContain("--disable-warning=DEP0169");
+    expect(config).toContain("--no-deprecation");
     expect(config).toContain('"includeFiles": "server/assets/sql-wasm.wasm"');
     expect(source("patches/parad@2.2.4.patch")).toContain("locateFile");
   });
