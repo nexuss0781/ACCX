@@ -22,10 +22,11 @@ describe("ACCX release-readiness contract", () => {
     expect(source("packages/sdk-python/pyproject.toml")).toContain("readme = \"README.md\"");
   });
 
-  it("keeps Vercel’s platform warning mitigation narrowly scoped", () => {
+  it("keeps Vercel’s runtime on a supported Node line without global warning suppression", () => {
+    const packageJson = source("package.json");
     const config = source("vercel.json");
-    expect(config).toContain("NODE_OPTIONS");
-    expect(config).toContain("--no-deprecation");
+    expect(packageJson).toContain('"node": "22.x"');
+    expect(config).not.toContain("NODE_OPTIONS");
     expect(config).toContain('"includeFiles": "server/assets/sql-wasm.wasm"');
     expect(source("patches/parad@2.2.4.patch")).toContain("locateFile");
   });

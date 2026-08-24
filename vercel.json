@@ -3,9 +3,6 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm run build",
   "outputDirectory": "dist",
-  "env": {
-    "NODE_OPTIONS": "--no-deprecation"
-  },
   "rewrites": [
     { "source": "/health", "destination": "/api/health" }
   ],
