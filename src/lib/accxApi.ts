@@ -3,6 +3,11 @@ export type CloudAuditEvent = { id: string; eventType: string; actorType: string
 export type Environment = { id: string; label: 'development' | 'staging' | 'production'; project_id: string; project_name: string };
 export type AppBootstrap = { user: { id: string; email: string; name: string; createdAt: string }; workspaceId: string; environments: Environment[]; secrets: CloudSecret[]; audit: CloudAuditEvent[] };
 
+export type CloudProject = { id: string; name: string; slug: string; createdAt: string; environments: EnvironmentLabel[] };
+export type EnvironmentLabel = 'development' | 'staging' | 'production';
+export type CloudEnvVar = { key: string; projectId: string; projectName: string; environmentId: string; environment: EnvironmentLabel; updatedAt: string | null; createdBy: string };
+export type CloudPat = { id: string; name: string; scopes: string[]; expiresAt: string | null; lastUsedAt: string | null; createdAt: string; revokedAt: string | null };
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const method = (init?.method || 'GET').toUpperCase();
   const mutationHeaders = method === 'GET' ? {} : { 'X-ACCX-Request-Timestamp': String(Date.now()), 'X-ACCX-Request-Nonce': crypto.randomUUID().replace(/-/g, '') };
@@ -24,4 +29,16 @@ export const accxApi = {
   revokeMetadata: (secretId: string, reason: string) => request<{ revoked: boolean }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'revoke_secret', operation: 'revoke', secretId, reason }) }),
   exportVault: (workspaceId: string) => request<{ bundle: unknown }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'export_vault', workspaceId }) }),
   importVault: (workspaceId: string, bundle: unknown) => request<{ imported: number }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'import_vault', workspaceId, bundle }) }),
+  listProjects: () => request<{ projects: CloudProject[] }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'list_projects', operation: 'list' }) }),
+  createProject: (name: string, slug?: string) => request<{ project: CloudProject }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'create_project', operation: 'create', name, slug }) }),
+  renameProject: (projectId: string, name: string) => request<{ renamed: boolean }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'rename_project', operation: 'rename', projectId, name }) }),
+  deleteProject: (projectId: string) => request<{ deleted: boolean }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'delete_project', operation: 'delete', projectId }) }),
+  addEnvironment: (projectId: string, label: EnvironmentLabel) => request<{ added: boolean }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'add_environment', operation: 'add_environment', projectId, label }) }),
+  removeEnvironment: (projectId: string, label: EnvironmentLabel) => request<{ removed: boolean }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'remove_environment', operation: 'remove_environment', projectId, label }) }),
+  listEnvironmentVariables: () => request<{ variables: CloudEnvVar[] }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'list_environment_variables', operation: 'list' }) }),
+  setEnvironmentVariable: (environmentId: string, key: string, value: string) => request<{ variable: { key: string; updated: boolean } }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'set_environment_variable', operation: 'set', environmentId, key, value }) }),
+  deleteEnvironmentVariable: (environmentId: string, key: string) => request<{ deleted: boolean }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'delete_environment_variable', operation: 'delete', environmentId, key }) }),
+  listPats: () => request<{ tokens: CloudPat[] }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'list_pats', operation: 'list' }) }),
+  createPat: (name: string) => request<{ token: { tokenId: string; token: string; prefix: string; expiresAt: string } }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'create_pat', operation: 'create', name }) }),
+  revokePat: (tokenId: string) => request<{ revoked: boolean }>('/api/v1/app', { method: 'POST', body: JSON.stringify({ command: 'revoke_pat', operation: 'revoke', tokenId }) }),
 };

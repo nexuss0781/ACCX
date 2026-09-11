@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useStore } from '../../store';
 import {
   LayoutDashboard, KeyRound, FolderOpen, Tag, StickyNote,
+  FolderTree, Server, Fingerprint,
   ChevronLeft, ChevronRight, LogOut, Settings, Shield
 } from 'lucide-react';
 import { cn } from '../../utils';
@@ -11,6 +12,9 @@ import { accxApi } from '../../lib/accxApi';
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/accounts', icon: KeyRound, label: 'Accounts' },
+  { to: '/projects', icon: FolderTree, label: 'Projects' },
+  { to: '/environment', icon: Server, label: 'Environment' },
+  { to: '/api-keys', icon: Fingerprint, label: 'API Keys' },
   { to: '/folders', icon: FolderOpen, label: 'Folders' },
   { to: '/categories', icon: Tag, label: 'Categories' },
   { to: '/notes', icon: StickyNote, label: 'Notes' },

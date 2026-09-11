@@ -1,10 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { ParadConnection } from "parad";
 import type { EnvironmentLabel, Scope, SecretMetadata } from "../../shared/contracts.js";
+import { allScopes } from "../../shared/contracts.js";
 import { redactAuditMetadata, type EncryptedSecretPayload } from "./security.js";
 
 const now = () => new Date().toISOString();
-const allScopes: Scope[] = ["metadata.read", "secret.rotate", "provider.publish", "job.execute", "audit.read", "identity.manage"];
 
 type Row = Record<string, unknown>;
 
@@ -39,6 +39,25 @@ export function bootstrapControlPlane(db: ParadConnection, operatorId: string): 
   }
   db.execute(`INSERT INTO workspace_members (id, workspace_id, subject_id, subject_type, scopes_json, created_at) VALUES (?, ?, ?, ?, ?, ?)`, [randomUUID(), workspaceId, operatorId, "human", JSON.stringify(allScopes), now()]);
   recordAudit(db, { workspaceId, projectId, actorType: "system", actorId: "bootstrap", eventType: "workspace.bootstrapped", metadata: { environments: 3 } });
+  return { workspaceId, projectId };
+}
+
+export function ensurePersonalWorkspace(db: ParadConnection, userId: string): { workspaceId: string; projectId: string } {
+  const existing = first<{ workspace_id: string }>(db.execute(`SELECT workspace_id FROM workspace_members WHERE subject_id = ? AND subject_type = 'human' ORDER BY created_at LIMIT 1`, [userId]));
+  if (existing) {
+    const project = first<{ id: string }>(db.execute(`SELECT id FROM projects WHERE workspace_id = ? ORDER BY created_at LIMIT 1`, [existing.workspace_id]));
+    if (!project) throw new Error("ACCX personal workspace has no project.");
+    return { workspaceId: existing.workspace_id, projectId: project.id };
+  }
+  const workspaceId = randomUUID();
+  const projectId = randomUUID();
+  db.execute(`INSERT INTO workspaces (id, name, slug, created_at) VALUES (?, ?, ?, ?)`, [workspaceId, "Personal", `personal-${createHash("sha256").update(userId).digest("hex").slice(0, 10)}`, now()]);
+  db.execute(`INSERT INTO projects (id, workspace_id, name, slug, created_at) VALUES (?, ?, ?, ?, ?)`, [projectId, workspaceId, "Primary", "primary", now()]);
+  for (const label of ["development", "staging", "production"] satisfies EnvironmentLabel[]) {
+    db.execute(`INSERT INTO environments (id, project_id, label, created_at) VALUES (?, ?, ?, ?)`, [randomUUID(), projectId, label, now()]);
+  }
+  db.execute(`INSERT INTO workspace_members (id, workspace_id, subject_id, subject_type, scopes_json, created_at) VALUES (?, ?, ?, 'human', ?, ?)`, [randomUUID(), workspaceId, userId, "human", JSON.stringify(allScopes), now()]);
+  recordAudit(db, { workspaceId, projectId, actorType: "system", actorId: "bootstrap", eventType: "workspace.personal_created", metadata: { environments: 3 } });
   return { workspaceId, projectId };
 }
 

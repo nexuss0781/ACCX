@@ -3,7 +3,31 @@
 from dataclasses import dataclass
 from typing import Any, Literal
 
-Scope = Literal["metadata.read", "secret.rotate", "provider.publish", "job.execute", "audit.read", "identity.manage"]
+Scope = Literal[
+    "metadata.read",
+    "secret.rotate",
+    "provider.publish",
+    "job.execute",
+    "audit.read",
+    "identity.manage",
+    "env.read",
+    "env.write",
+    "project.manage",
+]
+
+ALL_SCOPES: tuple[Scope, ...] = (
+    "metadata.read",
+    "secret.rotate",
+    "provider.publish",
+    "job.execute",
+    "audit.read",
+    "identity.manage",
+    "env.read",
+    "env.write",
+    "project.manage",
+)
+
+PERSONAL_TOKEN_PREFIX = "accx_pat_"
 JobStatus = Literal["awaiting_approval", "queued", "running", "succeeded", "failed", "cancelled"]
 
 

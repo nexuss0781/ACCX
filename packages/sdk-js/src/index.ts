@@ -8,6 +8,7 @@ import {
 } from "./contracts.js";
 
 export * from "./contracts.js";
+export * from "./env.js";
 
 export type AccxClientOptions = {
   baseUrl: string;

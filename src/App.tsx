@@ -6,6 +6,9 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import AccountsPage from './pages/AccountsPage';
+import ProjectsPage from './pages/ProjectsPage';
+import EnvironmentPage from './pages/EnvironmentPage';
+import ApiKeysPage from './pages/ApiKeysPage';
 import CategoriesPage from './pages/CategoriesPage';
 import FoldersPage from './pages/FoldersPage';
 import NotesPage from './pages/NotesPage';
@@ -28,6 +31,9 @@ export default function App() {
         <Route path="/register" element={<Guard publicOnly><RegisterPage /></Guard>} />
         <Route path="/" element={<Guard><DashboardPage /></Guard>} />
         <Route path="/accounts" element={<Guard><AccountsPage /></Guard>} />
+        <Route path="/projects" element={<Guard><ProjectsPage /></Guard>} />
+        <Route path="/environment" element={<Guard><EnvironmentPage /></Guard>} />
+        <Route path="/api-keys" element={<Guard><ApiKeysPage /></Guard>} />
         <Route path="/categories" element={<Guard><CategoriesPage /></Guard>} />
         <Route path="/folders" element={<Guard><FoldersPage /></Guard>} />
         <Route path="/notes" element={<Guard><NotesPage /></Guard>} />

@@ -35,8 +35,7 @@ export function assertRateLimit(db: ParadConnection, req: ApiRequest, input: { b
   db.execute(`UPDATE rate_limit_windows SET count = count + 1 WHERE bucket = ?`, [bucket]);
 }
 
-export function assertFreshMutation(db: ParadConnection, req: ApiRequest, input: { actorId: string; scope: string; limit: number; windowMs: number }): void {
-  assertSameOrigin(req);
+function assertFresh(db: ParadConnection, req: ApiRequest, input: { actorId: string; scope: string; limit: number; windowMs: number }): void {
   assertRateLimit(db, req, { bucket: input.scope, limit: input.limit, windowMs: input.windowMs });
   const timestamp = Number(header(req, "x-accx-request-timestamp"));
   const nonce = header(req, "x-accx-request-nonce");
@@ -45,4 +44,13 @@ export function assertFreshMutation(db: ParadConnection, req: ApiRequest, input:
   const existing = db.execute(`SELECT nonce FROM request_nonces WHERE nonce = ?`, [nonce]).rows[0];
   if (existing) throw new Error("REPLAYED_REQUEST");
   db.execute(`INSERT INTO request_nonces (nonce, actor_id, scope, expires_at, created_at) VALUES (?, ?, ?, ?, ?)`, [nonce, input.actorId, input.scope, new Date(Date.now() + timestampSkewMs).toISOString(), now()]);
+}
+
+export function assertFreshRequest(db: ParadConnection, req: ApiRequest, input: { actorId: string; scope: string; limit: number; windowMs: number }): void {
+  assertFresh(db, req, input);
+}
+
+export function assertFreshMutation(db: ParadConnection, req: ApiRequest, input: { actorId: string; scope: string; limit: number; windowMs: number }): void {
+  assertSameOrigin(req);
+  assertFresh(db, req, input);
 }

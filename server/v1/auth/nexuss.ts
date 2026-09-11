@@ -4,7 +4,7 @@ import type { ApiRequest, ApiResponse } from "../../_lib/http.js";
 import { sendJson } from "../../_lib/http.js";
 import { serverEnv } from "../../_lib/env.js";
 import { withControlPlaneDb } from "../../_lib/paradox.js";
-import { bootstrapControlPlane } from "../../_lib/vault.js";
+import { ensurePersonalWorkspace } from "../../_lib/vault.js";
 import { createUserSession, requireSession, sessionCookieHeader } from "../../_lib/auth.js";
 
 const STATE_TTL_MS = 10 * 60_000;
@@ -12,7 +12,6 @@ const BINDING_COOKIE = "accx_nexuss_binding";
 const identityIssuer = (authUrl: string) => authUrl.replace(/\/$/, "");
 const now = () => new Date().toISOString();
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
-const humanScopes = ["metadata.read", "secret.rotate", "provider.publish", "job.execute", "audit.read", "identity.manage"];
 
 type Provider = "google" | "github";
 type NexussUser = { id: string; email: string | null; name: string | null; avatarUrl?: string | null };
@@ -114,8 +113,7 @@ function ensureIdentity(db: ParadConnection, config: NonNullable<ReturnType<type
   const name = nexussUser.name || nexussUser.email?.split("@")[0] || "Nexuss Auth user";
   const createdAt = now();
   db.execute(`INSERT INTO users (id, email, name, password_hash, created_at) VALUES (?, ?, ?, ?, ?)`, [userId, email, name, "!external-nexuss-auth", createdAt]);
-  const controlPlane = bootstrapControlPlane(db, userId);
-  db.execute(`INSERT OR IGNORE INTO workspace_members (id, workspace_id, subject_id, subject_type, scopes_json, created_at) VALUES (?, ?, ?, 'human', ?, ?)`, [randomUUID(), controlPlane.workspaceId, userId, JSON.stringify(humanScopes), createdAt]);
+  ensurePersonalWorkspace(db, userId);
   db.execute(`INSERT INTO external_identities (id, user_id, issuer, subject, provider, email_at_link, created_at, last_seen_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [randomUUID(), userId, issuer, nexussUser.id, provider, nexussUser.email, createdAt, createdAt]);
   return { userId, created: true };
 }

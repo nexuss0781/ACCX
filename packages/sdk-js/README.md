@@ -35,3 +35,29 @@ The metadata cache is bounded and can be cleared with `clearMetadataCache()` aft
 ## Browser entry point
 
 `import { AccxBrowserMetadataClient } from "@nexuss0781/accx/browser"` is intentionally restricted to same-origin, session-authenticated **metadata listing**. It accepts no workload token and has no secret-resolution, clipboard, export, or persistent storage method.
+
+## Environment variables with `EnvLoader`
+
+Store the ACCX reference in your `.env` value and expand it at boot with a personal access token over the PAT channel:
+
+```
+GEMINI_KEY=accx://acme/production:GEMINI_KEY
+DB_HOST=accx://acme/production:DB_HOST
+LOCAL_DEV_FLAG=off
+```
+
+```ts
+import { EnvLoader } from "@nexuss0781/accx";
+
+const loader = new EnvLoader({
+  baseUrl: process.env.ACCX_BASE_URL!,
+  personalToken: process.env.ACCX_PERSONAL_TOKEN!, // accx_pat_...
+});
+
+const env = await loader.load({
+  local: process.env,            // explicit local values win
+  accx: await readFile(".env", "utf8"),
+});
+```
+
+`accx://<project>/<environment>:<KEY>` is resolved server-side only for the token's own workspace; `development`, `staging`, and `production` are the only environments. Batched resolution, bounded retries, and freshness headers are handled automatically, and keys missing on the server raise `AccxError` with status `404`.

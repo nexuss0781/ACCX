@@ -7,9 +7,26 @@ export const scopeSchema = z.enum([
   "job.execute",
   "audit.read",
   "identity.manage",
+  "env.read",
+  "env.write",
+  "project.manage",
 ]);
 
 export type Scope = z.infer<typeof scopeSchema>;
+
+export const allScopes = [
+  "metadata.read",
+  "secret.rotate",
+  "provider.publish",
+  "job.execute",
+  "audit.read",
+  "identity.manage",
+  "env.read",
+  "env.write",
+  "project.manage",
+] as const satisfies readonly Scope[];
+
+export const personalTokenPrefix = "accx_pat_" as const;
 
 export const environmentSchema = z.enum(["development", "staging", "production"]);
 export type EnvironmentLabel = z.infer<typeof environmentSchema>;

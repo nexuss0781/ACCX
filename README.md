@@ -37,6 +37,20 @@ ACCX is a full-featured account management system designed for individuals who w
 - Credential values are never displayed, copied, persisted, or resolved in the browser
 - Reference-only JavaScript and Python SDKs for sanitized orchestration results
 
+### Projects & Environment Variables
+- Create, rename, and delete projects with a slug and `development`/`staging`/`production` environments
+- Add and remove environments per project (deletes are blocked while data remains)
+- Set, list, and delete encrypted environment variables scoped to a project + environment
+- Values are encrypted at rest with envelope encryption and a verification hash; the browser receives masked descriptors only
+- Reveal of any value requires step-up authentication
+- Machine access via personal API tokens (`accx_pat_...`) with `env.read`/`env.write` scopes
+- `accx://<project>/<environment>:<KEY>` references resolved over the PAT channel by both SDKs
+
+### Personal API Keys
+- Mint, list, and revoke personal access tokens; the full token is shown once at creation
+- Tokens are stored as SHA-256 digests and authenticated via `Authorization: Bearer`
+- Scope-bounded to the owning workspace
+
 ### Categories
 - Create, edit, and delete categories with custom colors and icons
 - Accounts are tagged and filterable by category
