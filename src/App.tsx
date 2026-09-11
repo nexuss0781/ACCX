@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useStore } from './store';
 import Layout from './components/layout/Layout';
 import LoginPage from './pages/LoginPage';
@@ -15,12 +15,27 @@ import NotesPage from './pages/NotesPage';
 import { accxApi } from './lib/accxApi';
 
 function Guard({ children, publicOnly = false }: { children: React.ReactNode; publicOnly?: boolean }) {
-  const { user, setUser } = useStore();
+  const user = useStore(s => s.user);
+  const setUser = useStore(s => s.setUser);
+  const location = useLocation();
   const [ready, setReady] = useState(false);
-  useEffect(() => { void accxApi.session().then(({ user: cloudUser }) => setUser(cloudUser)).catch(() => setUser(null)).finally(() => setReady(true)); }, [setUser]);
-  if (!ready) return <div className="min-h-screen bg-bg-base" />;
+  const validated = useRef(false);
+
+  useEffect(() => {
+    if (validated.current) return;
+    validated.current = true;
+    let cancelled = false;
+    void accxApi.session()
+      .then(({ user: cloudUser }) => { if (!cancelled) setUser(cloudUser ?? null); })
+      .catch(() => { if (!cancelled) setUser(null); })
+      .finally(() => { if (!cancelled) setReady(true); });
+    return () => { cancelled = true; };
+  }, [setUser]);
+
+  if (!ready && !user) return <div className="min-h-screen bg-bg-base" />;
   if (publicOnly) return user ? <Navigate to="/" replace /> : <>{children}</>;
-  return user ? <Layout>{children}</Layout> : <Navigate to="/login" replace />;
+  const from = location.pathname + location.search;
+  return user ? <Layout>{children}</Layout> : <Navigate to={`/login?from=${encodeURIComponent(from)}`} replace />;
 }
 
 export default function App() {

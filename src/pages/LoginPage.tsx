@@ -17,12 +17,13 @@ export default function LoginPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryError = new URLSearchParams(location.search).get('error');
+  const from = new URLSearchParams(location.search).get('from');
 
   const continueWithNexuss = async (provider: 'github' | 'google') => {
     setError('');
     setLoading(provider);
     try {
-      const { authorizationUrl } = await accxApi.nexussStart(provider, '/');
+      const { authorizationUrl } = await accxApi.nexussStart(provider, from || '/');
       window.location.assign(authorizationUrl);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Nexuss Auth is unavailable.');

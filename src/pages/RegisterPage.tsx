@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Shield, Github, Globe2, ArrowRight } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { accxApi } from '../lib/accxApi';
@@ -7,12 +7,14 @@ import { accxApi } from '../lib/accxApi';
 export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState<'github' | 'google' | ''>('');
+  const location = useLocation();
+  const from = new URLSearchParams(location.search).get('from');
 
   const continueWithNexuss = async (provider: 'github' | 'google') => {
     setError('');
     setLoading(provider);
     try {
-      const { authorizationUrl } = await accxApi.nexussStart(provider, '/');
+      const { authorizationUrl } = await accxApi.nexussStart(provider, from || '/');
       window.location.assign(authorizationUrl);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Nexuss Auth is unavailable.');

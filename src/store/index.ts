@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { User, Account, Category, Folder, Note, Activity } from '../types';
 import type { Theme } from '../utils/theme';
 import { applyTheme } from '../utils/theme';
@@ -18,7 +19,7 @@ interface AppState {
   addActivity: (type: Activity['type'], entity: Activity['entity'], entityId: string, entityName: string) => void;
 }
 
-export const useStore = create<AppState>()((set, get) => ({
+export const useStore = create<AppState>()(persist((set, get) => ({
   user: null, accounts: [], categories: defaultCategories, folders: defaultFolders, notes: [], activities: [], sidebarCollapsed: false, theme: 'dark',
   setUser: user => set({ user }), logout: () => set({ user: null, accounts: [], activities: [] }), toggleSidebar: () => set(s => ({ sidebarCollapsed: !s.sidebarCollapsed })),
   toggleTheme: () => { const theme = get().theme === 'light' ? 'dark' : 'light'; applyTheme(theme); set({ theme }); },
@@ -30,4 +31,4 @@ export const useStore = create<AppState>()((set, get) => ({
   addFolder: (name, description, color) => { const id = uid(); set(s => ({ folders: [...s.folders, { id, name, description, color: color || '#6366f1', createdAt: now(), updatedAt: now() }] })); return id; }, updateFolder: (id, data) => set(s => ({ folders: s.folders.map(f => f.id === id ? { ...f, ...data, updatedAt: now() } : f) })), deleteFolder: id => set(s => ({ folders: s.folders.filter(f => f.id !== id) })),
   addNote: (title, content, color) => { const id = uid(); set(s => ({ notes: [{ id, title, content, color, pinned: false, createdAt: now(), updatedAt: now() }, ...s.notes] })); return id; }, updateNote: (id, data) => set(s => ({ notes: s.notes.map(n => n.id === id ? { ...n, ...data, updatedAt: now() } : n) })), deleteNote: id => set(s => ({ notes: s.notes.filter(n => n.id !== id) })), togglePinNote: id => set(s => ({ notes: s.notes.map(n => n.id === id ? { ...n, pinned: !n.pinned } : n) })),
   addActivity: (type, entity, entityId, entityName) => set(s => ({ activities: [{ id: uid(), type, entity, entityId, entityName, timestamp: now() }, ...s.activities].slice(0, 50) })),
-}));
+}), { name: 'accx-store', partialize: s => ({ user: s.user, theme: s.theme, sidebarCollapsed: s.sidebarCollapsed }) }));
