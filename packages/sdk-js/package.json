@@ -1,12 +1,23 @@
 {
   "name": "@nexuss0781/accx",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "ACCX cloud control-plane SDK. It accepts references and returns sanitized results only.",
   "type": "module",
   "license": "MIT",
-  "engines": { "node": ">=18" },
-  "repository": { "type": "git", "url": "https://github.com/nexuss0781/ACCX.git", "directory": "packages/sdk-js" },
-  "publishConfig": { "access": "public" },
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "accx": "./dist/cli.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nexuss0781/ACCX.git",
+    "directory": "packages/sdk-js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -19,7 +30,10 @@
       "default": "./dist/browser.js"
     }
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "prepack": "npm run build"
@@ -28,6 +42,7 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@types/node": "^22.20.2",
     "typescript": "^6.0.2"
   }
 }

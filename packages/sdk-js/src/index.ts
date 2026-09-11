@@ -9,6 +9,10 @@ import {
 
 export * from "./contracts.js";
 export * from "./env.js";
+export * from "./control-plane.js";
+
+import { AccxError } from "./errors.js";
+export { AccxError } from "./errors.js";
 
 export type AccxClientOptions = {
   baseUrl: string;
@@ -18,17 +22,6 @@ export type AccxClientOptions = {
   retryBaseMs?: number;
   timeoutMs?: number;
 };
-
-export class AccxError extends Error {
-  readonly status: number;
-  readonly retryable: boolean;
-  constructor(status: number, message = "ACCX request was rejected.") {
-    super(message);
-    this.name = "AccxError";
-    this.status = status;
-    this.retryable = status === 0 || status === 408 || status === 429 || status >= 500;
-  }
-}
 
 /** Redacts secret-shaped logging values without attempting to inspect credential contents. */
 export function redactAccxValue(value: unknown): unknown {
