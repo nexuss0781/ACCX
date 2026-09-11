@@ -195,7 +195,7 @@ export async function handleNexussCallback(req: ApiRequest, res: ApiResponse): P
     }, { write: true });
     nextPath = safeNextPath(stateRecord.next_path);
     const user = await identityFromUpstream(config, handoffToken, true);
-    const result = await createLocalSession(config, user, stateRecord.provider, req);
+    const result = await createLocalSession(config, user, stateRecord.provider, req, true);
     res.statusCode = 302;
     res.setHeader("Location", nextPath);
     res.setHeader("Cache-Control", "no-store");
