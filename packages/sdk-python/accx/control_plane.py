@@ -53,6 +53,19 @@ class ControlPlaneClient:
         self._validate_label(label)
         self._request("remove_environment", {"operation": "remove_environment", "projectId": self.resolve_project_id(project), "label": label})
 
+    def list_variables(self) -> list[dict[str, Any]]:
+        """All variables across the workspace (metadata only, no values)."""
+        payload = self._request("list_environment_variables", {"operation": "list"})
+        return payload.get("variables") if isinstance(payload.get("variables"), list) else []
+
+    def search_variables(self, query: str = "") -> list[dict[str, Any]]:
+        """Greps variables across every project by key or project name (case-insensitive substring)."""
+        body: dict[str, Any] = {"operation": "list"}
+        if query and query.strip():
+            body["query"] = query.strip()
+        payload = self._request("list_environment_variables", body)
+        return payload.get("variables") if isinstance(payload.get("variables"), list) else []
+
     def resolve_project(self, selector: str) -> dict[str, Any]:
         projects = self.list_projects()
         for p in projects:

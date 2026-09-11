@@ -77,6 +77,16 @@ describe("ACCX environment variable write path", () => {
     expect(out[0]).toEqual({ key: "API_URL", projectId: "p1", projectName: "Acme", environmentId: "env-1", environment: "production", updatedAt: "2026-01-01T00:00:00.000Z", createdBy: "user-1" });
   });
 
+  it("filters variables across projects by a search query", () => {
+    const descriptors = { rows: [{ key: "GEMINI_KEY", project_id: "p1", project_name: "Acme", environment_id: "env-1", environment: "production", updated_at: null, created_by_subject: "user-1" }] };
+    const service = db(membership, primaryProject, descriptors) as typeof db & { calls: Call[] };
+    const out = listEnvironmentVariables(service as never, "user-1", "gemini");
+    const select = service.calls.find(call => call.sql.includes("LOWER(ev.key) LIKE"));
+    expect(select).toBeTruthy();
+    expect(select!.params).toContain("%gemini%");
+    expect(out).toHaveLength(1);
+  });
+
   it("claims the env variable routes", () => {
     const routes = source("api/v1/app.ts");
     expect(routes).toContain("set_environment_variable: environment");

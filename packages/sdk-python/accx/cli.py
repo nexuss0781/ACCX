@@ -1,4 +1,4 @@
-"""Non-interactive ACCX control-plane CLI. Projects and environments CRUD."""
+"""Non-interactive ACCX control-plane CLI. Projects, environments, and variable search."""
 
 from __future__ import annotations
 
@@ -65,6 +65,16 @@ def _envs_remove(args: argparse.Namespace) -> None:
     _print({"ok": True, "project": args.project, "environment": args.label})
 
 
+# ── variables ─────────────────────────────────────────────────────────────
+
+def _vars_list(args: argparse.Namespace) -> None:
+    _print(_client(args).list_variables())
+
+
+def _vars_search(args: argparse.Namespace) -> None:
+    _print(_client(args).search_variables(args.query or ""))
+
+
 # ── parser ─────────────────────────────────────────────────────────────────
 
 def build_parser() -> argparse.ArgumentParser:
@@ -98,6 +108,13 @@ def build_parser() -> argparse.ArgumentParser:
     rm.add_argument("--label", required=True, choices=_VALID_LABELS, help="Environment label")
     rm.add_argument("--yes", action="store_true", help="Confirm removal")
 
+    vars_cmd = sub.add_parser("variables", help="Variable search across projects")
+    vs = vars_cmd.add_subparsers(dest="action")
+    vsl = vs.add_parser("list", help="List every variable (metadata only, no values)")
+    vsl.add_argument("--query", help="Filter by key or project name (grep)")
+    vss = vs.add_parser("search", help="Grep variables across projects by key")
+    vss.add_argument("query", help="Substring to search for")
+
     return parser
 
 
@@ -109,6 +126,8 @@ _ACTIONS: dict[str, dict[str, Any]] = {
     "environments.list": {"fn": _envs_list},
     "environments.add": {"fn": _envs_add},
     "environments.remove": {"fn": _envs_remove, "confirm": "yes"},
+    "variables.list": {"fn": _vars_list},
+    "variables.search": {"fn": _vars_search},
 }
 
 

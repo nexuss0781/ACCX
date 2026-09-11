@@ -30,6 +30,11 @@ Environments:
   accx environments add --project <id> --name <label>  Add an environment
   accx environments remove --project <id> --name <label> --yes  Remove an environment
 
+Variables (search across ALL projects):
+  accx variables list                      List every variable (metadata only)
+  accx variables list --query <q>          Filter by key or project name (grep)
+  accx variables search <q>                Grep variables across projects by key
+
 Global options:
   --token <pat>   token to use instead of ACCX_PAT
   --base-url <u>  API base URL instead of ACCX_BASE_URL
@@ -92,6 +97,7 @@ async function main(): Promise<void> {
 
   if (command === "projects") return runProjects(client, positional, flags);
   if (command === "environments") return runEnvironments(client, positional, flags);
+  if (command === "variables") return runVariables(client, positional, flags);
   fail(`Unknown command "${command}".`, 2);
 }
 
@@ -139,6 +145,18 @@ async function runEnvironments(client: ControlPlaneClient, positional: string[],
     return print({ ok: true, projectId, environment: label });
   }
   fail(`Unknown environments action "${action}".`, 2);
+}
+
+async function runVariables(client: ControlPlaneClient, positional: string[], flags: Record<string, string | boolean>): Promise<void> {
+  const action = positional[1];
+  const query = typeof flags.query === "string" && flags.query.trim().length > 0 ? flags.query.trim() : positional[2];
+  if (action === "list") return print(await client.searchVariables(query));
+  if (action === "search") {
+    if (!query) fail("Usage: accx variables search <query>", 2);
+    return print(await client.searchVariables(query));
+  }
+  if (!action) fail("Missing variables action: list | search", 2);
+  fail(`Unknown variables action "${action}".`, 2);
 }
 
 main().catch(error => fail(error instanceof Error ? error.message : String(error)));

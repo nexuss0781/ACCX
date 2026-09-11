@@ -11,7 +11,7 @@ const environmentId = z.string().uuid();
 const key = z.string().trim().min(1).max(128);
 const setSchema = z.object({ operation: z.literal("set"), environmentId, key, value: z.string().min(1).max(8192) });
 const deleteSchema = z.object({ operation: z.literal("delete"), environmentId, key });
-const listSchema = z.object({ operation: z.literal("list") });
+const listSchema = z.object({ operation: z.literal("list"), query: z.string().trim().max(128).optional() });
 const revealSchema = z.object({ operation: z.literal("reveal"), environmentId, key });
 const schema = z.discriminatedUnion("operation", [listSchema, setSchema, deleteSchema, revealSchema]);
 
@@ -35,7 +35,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
         actor = { userId: pat.userId, actorId: pat.tokenId, actorType: "service" };
       }
       assertFreshMutation(db, req, { actorId: actor.userId, scope: `app.environment.${input.operation}`, limit: 120, windowMs: 60_000 });
-      if (input.operation === "list") return { variables: listEnvironmentVariables(db, actor.userId) };
+      if (input.operation === "list") return { variables: listEnvironmentVariables(db, actor.userId, input.query) };
       if (input.operation === "set") return { variable: setEnvironmentVariable(db, { ...actor, environmentId: input.environmentId, key: input.key, value: input.value }) };
       deleteEnvironmentVariable(db, { ...actor, environmentId: input.environmentId, key: input.key });
       return { deleted: true };

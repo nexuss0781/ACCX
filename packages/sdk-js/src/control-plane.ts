@@ -2,6 +2,7 @@ import { AccxError } from "./errors.js";
 import { environmentSchema, type EnvironmentLabel } from "./contracts.js";
 
 export type CloudProject = { id: string; name: string; slug: string; createdAt: string; environments: EnvironmentLabel[] };
+export type CloudEnvVar = { key: string; projectId: string; projectName: string; environmentId: string; environment: EnvironmentLabel; updatedAt: string | null; createdBy: string };
 export type ControlPlaneClientOptions = {
   baseUrl: string;
   personalAccessToken: string;
@@ -62,6 +63,19 @@ export class ControlPlaneClient {
   async removeEnvironment(project: string, label: EnvironmentLabel): Promise<void> {
     const projectId = await this.resolveProjectId(project);
     await this.request<{ removed?: boolean }>("remove_environment", { operation: "remove_environment", projectId, label });
+  }
+
+  /**
+   * Greps environment variables across every project in the workspace.
+   * A query matches variable keys or project names (case-insensitive substring).
+   * Results are metadata only — values never leave ACCX.
+   */
+  async searchVariables(query?: string): Promise<CloudEnvVar[]> {
+    const payload = await this.request<{ variables?: unknown }>("list_environment_variables", {
+      operation: "list",
+      ...(query && query.trim().length > 0 ? { query: query.trim() } : {}),
+    });
+    return Array.isArray(payload.variables) ? (payload.variables as CloudEnvVar[]) : [];
   }
 
   /** Resolves a project selector (UUID, slug, or name) to its full record. */

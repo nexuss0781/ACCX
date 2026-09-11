@@ -10,9 +10,12 @@ const ENV_KEY = /^[A-Za-z_][A-Za-z0-9_]{0,127}$/;
 type Row = Record<string, unknown>;
 function first<T extends Row>(result: { rows: Row[] }): T | null { return (result.rows[0] as T | undefined) ?? null; }
 
-export function listEnvironmentVariables(db: ParadConnection, userId: string): { key: string; projectId: string; projectName: string; environmentId: string; environment: EnvironmentLabel; updatedAt: string | null; createdBy: string }[] {
+export function listEnvironmentVariables(db: ParadConnection, userId: string, query?: string): { key: string; projectId: string; projectName: string; environmentId: string; environment: EnvironmentLabel; updatedAt: string | null; createdBy: string }[] {
   const { workspaceId } = ensurePersonalWorkspace(db, userId);
-  const result = db.execute(`SELECT ev.key, e.project_id, p.name AS project_name, e.id AS environment_id, e.label AS environment, ev.updated_at, ev.created_by_subject FROM environment_variables ev JOIN environments e ON e.id = ev.environment_id JOIN projects p ON p.id = e.project_id WHERE p.workspace_id = ? ORDER BY p.name, e.label, ev.key`, [workspaceId]);
+  const search = query && query.length > 0 ? `%${query.replace(/[\\%_]/g, match => `\\${match}`).toLowerCase()}%` : null;
+  const result = search
+    ? db.execute(`SELECT ev.key, e.project_id, p.name AS project_name, e.id AS environment_id, e.label AS environment, ev.updated_at, ev.created_by_subject FROM environment_variables ev JOIN environments e ON e.id = ev.environment_id JOIN projects p ON p.id = e.project_id WHERE p.workspace_id = ? AND (LOWER(ev.key) LIKE ? ESCAPE '\\' OR LOWER(p.name) LIKE ? ESCAPE '\\') ORDER BY p.name, e.label, ev.key`, [workspaceId, search, search])
+    : db.execute(`SELECT ev.key, e.project_id, p.name AS project_name, e.id AS environment_id, e.label AS environment, ev.updated_at, ev.created_by_subject FROM environment_variables ev JOIN environments e ON e.id = ev.environment_id JOIN projects p ON p.id = e.project_id WHERE p.workspace_id = ? ORDER BY p.name, e.label, ev.key`, [workspaceId]);
   return (result.rows as Row[]).map(row => ({
     key: String(row.key), projectId: String(row.project_id), projectName: String(row.project_name), environmentId: String(row.environment_id), environment: String(row.environment) as EnvironmentLabel,
     updatedAt: row.updated_at === null ? null : String(row.updated_at), createdBy: String(row.created_by_subject),
