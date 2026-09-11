@@ -27,3 +27,4 @@ dist-ssr
 .vercel
 __pycache__/
 *.py[cod]
+*.egg-info/
